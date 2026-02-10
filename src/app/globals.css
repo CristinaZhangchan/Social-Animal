@@ -1,0 +1,307 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* SocialAnimal Dark Theme - Always Dark */
+  --sa-bg-primary: #0a0a0f;
+  --sa-bg-secondary: #12121a;
+  --sa-bg-tertiary: #1a1a24;
+  --sa-accent-cyan: #00d4ff;
+  --sa-accent-purple: #a855f7;
+  --sa-accent-magenta: #ff00ff;
+  --sa-text-primary: #ffffff;
+  --sa-text-secondary: #94a3b8;
+  --sa-text-muted: #64748b;
+
+  /* Light Theme Variables - Nordic Sunrise */
+  --light-bg-start: #fde68a;
+  --light-bg-middle: #fbcfe8;
+  --light-bg-end: #e9d5ff;
+  --light-surface: rgba(255, 255, 255, 0.6);
+  --light-text-primary: #1f2937;
+  --light-text-secondary: #6b7280;
+  --light-accent: #8b5cf6;
+  --light-border: rgba(255, 255, 255, 0.8);
+
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 10, 10, 15;
+}
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: var(--sa-bg-primary);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Roboto',
+    'Oxygen',
+    'Ubuntu',
+    'Cantarell',
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Chamfered Rectangle Clip Path - Iron Man HUD Style */
+  .clip-chamfer {
+    clip-path: polygon(
+      0 12px,
+      12px 0,
+      calc(100% - 12px) 0,
+      100% 12px,
+      100% calc(100% - 12px),
+      calc(100% - 12px) 100%,
+      12px 100%,
+      0 calc(100% - 12px)
+    );
+  }
+
+  .clip-chamfer-lg {
+    clip-path: polygon(
+      0 20px,
+      20px 0,
+      calc(100% - 20px) 0,
+      100% 20px,
+      100% calc(100% - 20px),
+      calc(100% - 20px) 100%,
+      20px 100%,
+      0 calc(100% - 20px)
+    );
+  }
+
+  /* Neon Border Effects */
+  .border-neon-cyan {
+    border: 1px solid var(--sa-accent-cyan);
+    box-shadow:
+      0 0 10px rgba(0, 212, 255, 0.3),
+      inset 0 0 10px rgba(0, 212, 255, 0.1);
+  }
+
+  .border-neon-purple {
+    border: 1px solid var(--sa-accent-purple);
+    box-shadow:
+      0 0 10px rgba(168, 85, 247, 0.3),
+      inset 0 0 10px rgba(168, 85, 247, 0.1);
+  }
+
+  /* Glow Text */
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+
+  .text-glow-purple {
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  }
+
+  /* Scan Line Overlay */
+  .scan-lines::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 212, 255, 0.03) 2px,
+      rgba(0, 212, 255, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Grid Background Pattern */
+  .bg-grid {
+    background-image: linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* HUD Corner Decorations */
+  .hud-corners::before,
+  .hud-corners::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: var(--sa-accent-cyan);
+    border-style: solid;
+    border-width: 0;
+  }
+
+  .hud-corners::before {
+    top: 0;
+    left: 0;
+    border-top-width: 2px;
+    border-left-width: 2px;
+  }
+
+  .hud-corners::after {
+    bottom: 0;
+    right: 0;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+  }
+
+  /* Speaking indicator animation */
+  .speaking-pulse {
+    animation: speaking-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes speaking-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 35px rgba(0, 212, 255, 0.8);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     LIGHT THEME - Nordic Sunrise Components
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Light Theme - Gradient Background */
+  .bg-light-gradient {
+    background: linear-gradient(135deg, #fde68a 0%, #fbcfe8 50%, #e9d5ff 100%);
+  }
+
+  /* Light Theme - Glassmorphism Card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-card-sm {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Light Theme - Button */
+  .btn-light-primary {
+    background: #ffffff;
+    color: #7c3aed;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .btn-light-primary:hover {
+    box-shadow: 0 6px 20px 0 rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Light Theme - Input */
+  .input-light {
+    background: #ffffff;
+    color: #1f2937;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .input-light:focus {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+    outline: none;
+  }
+
+  .input-light::placeholder {
+    color: #9ca3af;
+  }
+
+  /* Light Theme - User Camera Frame */
+  .camera-ring-light {
+    border: 4px solid white;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Light Theme - Speaking Gradient Flow Ring */
+  .camera-ring-speaking-light {
+    background: linear-gradient(90deg, #fde68a, #fbcfe8, #e9d5ff, #fbcfe8, #fde68a);
+    background-size: 200% 100%;
+    animation: gradient-flow 2s linear infinite;
+    padding: 4px;
+    border-radius: 20px;
+  }
+
+  @keyframes gradient-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  /* Light Theme - Text Styles */
+  .text-light-primary {
+    color: #1f2937;
+  }
+
+  .text-light-secondary {
+    color: #6b7280;
+  }
+
+  .text-light-accent {
+    color: #8b5cf6;
+  }
+
+  /* Light Theme - Accent Glow */
+  .text-glow-violet {
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  }
+
+  /* Light Theme - Badge */
+  .badge-light {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 9999px;
+  }
+
+  /* Light Theme - Insight Cards */
+  .insight-card-light-positive {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 16px;
+  }
+
+  .insight-card-light-improvement {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 16px;
+  }
+}

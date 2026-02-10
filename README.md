@@ -1,6 +1,4 @@
-# CharmUp Web Demo
-
-![CharmUp Banner](https://via.placeholder.com/1200x300/FFE66D/6B46C1?text=CharmUp+-+Improve+Your+Social+Skills)
+# SocialAnimal Web
 
 An AI-powered platform to help users improve their social skills through realistic conversations with AI avatars. Built with Next.js, OpenAI, and modern web technologies.
 
@@ -11,7 +9,7 @@ An AI-powered platform to help users improve their social skills through realist
 - **Real-time Feedback**: Get instant analysis of your communication skills
 - **Voice Integration**: Speech-to-text and text-to-speech powered by OpenAI
 - **Tiered Access**: Free tier with 3 conversations/week, premium plans for unlimited access
-- **Mobile-First Design**: Beautiful, responsive UI with CharmUp gradient branding
+- **Mobile-First Design**: Beautiful, responsive UI with SocialAnimal gradient branding
 
 ## Tech Stack
 
@@ -25,7 +23,7 @@ An AI-powered platform to help users improve their social skills through realist
 ## Project Structure
 
 ```
-charmupai/
+SocialAnimalai/
 ├── src/
 │   ├── app/
 │   │   ├── (landing)/          # Landing page
@@ -64,7 +62,7 @@ charmupai/
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd charmupai
+   cd SocialAnimalai
    ```
 
 2. **Install dependencies**
@@ -193,7 +191,7 @@ const FREE_TIER_LIMIT = 3; // Change this number
 
 5. **Custom Domain (Optional)**
    - Go to Project Settings → Domains
-   - Add your custom domain (e.g., `demo.charmup.ai`)
+   - Add your custom domain (e.g., `demo.SocialAnimal.ai`)
    - Follow DNS configuration instructions
 
 ### Alternative: Deploy to Other Platforms
@@ -297,21 +295,4 @@ CMD ["npm", "start"]
 
 ## License
 
-This project is proprietary software for CharmUp. All rights reserved.
-
-## Support
-
-For questions or issues:
-- Email: support@charmup.ai
-- GitHub Issues: [Create an issue](https://github.com/your-org/charmupai/issues)
-
-## Acknowledgments
-
-- Built with [Next.js](https://nextjs.org/)
-- Powered by [OpenAI](https://openai.com/)
-- UI inspired by Nordic design principles
-- Special thanks to the CharmUp team
-
----
-
-**Made with ❤️ by the CharmUp Team**
+This project is proprietary software for SocialAnimal. All rights reserved.

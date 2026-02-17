@@ -1,310 +1,196 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  SUPPORTED_LANGUAGES,
-  getLanguageByCode,
-  getLanguageFlag,
-} from "@/lib/constants/languages";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useTheme } from "@/components/ThemeProvider";
+import { StepScenario } from "@/components/demo/StepScenario";
+import { StepDetails } from "@/components/demo/StepDetails";
+import { StepAvatar } from "@/components/demo/StepAvatar";
+import { StepSettings } from "@/components/demo/StepSettings";
+import { WizardStepper } from "@/components/demo/WizardStepper";
+import { AVATARS } from "@/lib/constants/avatars";
 
 export default function DemoPage() {
   const router = useRouter();
-  const [customScenario, setCustomScenario] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
-  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [sessionData, setSessionData] = useState({
+    // Step 1
+    scenario: "",
+    // Step 2
+    title: "",
+    description: "",
+    goal: "",
+    difficulty: "Medium" as "Easy" | "Medium" | "Hard",
+    // Step 3
+    avatarId: AVATARS[0].id,
+    customName: "",
+    customRole: "",
+    customPersonality: "",
+    avatarUrl: "", // Add this
+    // Step 4
+    duration: 5,
+    autoWrap: true,
+  });
 
-  const handleStartPractice = async () => {
-    if (!customScenario.trim()) return;
-    setIsLoading(true);
-    router.push(
-      `/demo/session?scenario=custom&prompt=${encodeURIComponent(customScenario)}&lang=${selectedLanguage}`
-    );
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+
+  const handleNext = (data: Partial<typeof sessionData>) => {
+    const updatedData = { ...sessionData, ...data };
+    setSessionData(updatedData);
+
+    if (step < 4) {
+      setStep(step + 1);
+    } else {
+      // Final step: Start Session
+      startSession(updatedData);
+    }
   };
 
-  const selectedLang = getLanguageByCode(selectedLanguage);
-  const { theme } = useTheme();
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const startSession = (finalData: typeof sessionData) => {
+    // Construct query params
+    const params = new URLSearchParams();
+    params.append("scenario", "custom"); // Internal flag
+    params.append("lang", selectedLanguage);
+
+    // Combine scenario and description for the prompt
+    // If title is set, maybe preface it? 
+    // "Scenario: [Title]. Situation: [Description]. Goal: [Goal]."
+    let combinedPrompt = `Scenario: ${finalData.title || "Custom Practice"}.\nSituation: ${finalData.description || finalData.scenario}\n`;
+    if (finalData.goal) combinedPrompt += `Goal: ${finalData.goal}\n`;
+    if (finalData.difficulty) combinedPrompt += `Difficulty: ${finalData.difficulty}\n`;
+
+    // Avatar details
+    const avatar = AVATARS.find(a => a.id === finalData.avatarId);
+
+    // Use custom details if provided, else fallback to avatar defaults (though typically they are pre-filled in Step 3)
+    const avatarName = finalData.customName || avatar?.name || "AI";
+    const avatarRole = finalData.customRole || avatar?.role || "Conversation Partner";
+    const avatarPersona = finalData.customPersonality || avatar?.description || "";
+
+    combinedPrompt += `\nYour Role: You are ${avatarName}, ${avatarRole}. ${avatarPersona}`;
+
+    params.append("prompt", combinedPrompt);
+
+    // Pass other config (duration, autoWrap) - currently the session page might not support these 
+    // but we can pass them for future use or handled by a context
+    params.append("duration", finalData.duration.toString());
+    params.append("autoWrap", finalData.autoWrap.toString());
+
+    // Avatar ID / Voice ID could be passed if the backend supports selecting specific avatars
+    // Avatar ID / Voice ID could be passed if the backend supports selecting specific avatars
+    // Avatar ID / Voice ID could be passed if the backend supports selecting specific avatars
+    if (avatar) {
+      params.append("avatarId", avatar.id);
+      params.append("voiceId", avatar.voiceId);
+    } else if (finalData.avatarId) {
+      // HeyGen Avatar OR Custom Upload
+      if (finalData.avatarId === "custom") {
+        // Custom upload → use Talking Photo mode for lip sync
+        params.append("avatarId", "custom");
+        params.append("api", "talking-photo");
+      } else {
+        // HeyGen Avatar ID
+        params.append("avatarId", finalData.avatarId);
+        params.append("api", "heygen");
+      }
+    }
+
+    if (finalData.avatarUrl) {
+      params.append("avatarUrl", finalData.avatarUrl);
+    }
+
+    router.push(`/demo/session?${params.toString()}`);
+  };
 
   return (
-    <main
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
-      }`}
-    >
-      {/* Ambient glow effects - only in dark mode */}
-      {theme === "dark" && (
-        <>
-          <div className="absolute top-1/4 left-0 w-96 h-96 bg-sa-accent-cyan/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-sa-accent-purple/10 rounded-full blur-3xl" />
-        </>
-      )}
+    <main className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+      {/* Background gradient */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute top-1/4 left-0 w-96 h-96 rounded-full blur-[120px] opacity-20"
+          style={{ background: 'radial-gradient(circle, hsl(262 83% 58%) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute bottom-1/4 right-0 w-96 h-96 rounded-full blur-[100px] opacity-15"
+          style={{ background: 'radial-gradient(circle, hsl(15 85% 60%) 0%, transparent 70%)' }}
+        />
+      </div>
 
-      <div className="container mx-auto px-4 py-8 relative z-10">
+      <div className="container mx-auto px-4 py-8 relative z-10 flex-1 flex flex-col">
         {/* Header */}
-        <header className="flex justify-between items-center mb-12">
+        <header className="flex justify-between items-center mb-8">
           <Link
             href="/"
-            className={`flex items-center gap-3 transition-colors ${
-              theme === "dark"
-                ? "text-sa-text-secondary hover:text-white"
-                : "text-light-secondary hover:text-light-primary"
-            }`}
+            className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span className="text-xl">&larr;</span>
-            <span
-              className={`text-2xl font-bold ${
-                theme === "dark"
-                  ? "text-white text-glow-cyan"
-                  : "text-light-primary text-glow-violet"
-              }`}
-            >
+            <span className="text-xl">←</span>
+            <span className="text-2xl font-bold text-primary">
               SocialAnimal
             </span>
           </Link>
           <ThemeToggle />
         </header>
 
-        {/* Main Content */}
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <div
-              className={`inline-block mb-4 px-4 py-1 text-sm font-medium ${
-                theme === "dark"
-                  ? "bg-sa-accent-cyan/20 border border-sa-accent-cyan/40 text-sa-accent-cyan clip-chamfer"
-                  : "badge-light"
-              }`}
-            >
-              CUSTOM SCENARIO
-            </div>
-            <h1
-              className={`text-4xl md:text-5xl font-bold mb-4 ${
-                theme === "dark" ? "text-white" : "text-light-primary"
-              }`}
-            >
-              Describe Your Scene
-            </h1>
-            <p
-              className={`text-lg max-w-xl mx-auto ${
-                theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-              }`}
-            >
-              Tell us the situation you want to practice. Our AI will create a
-              realistic avatar to match your scenario.
-            </p>
-          </div>
+        {/* Wizard Progress */}
+        <div className="max-w-3xl mx-auto w-full mb-4">
+          <WizardStepper currentStep={step} />
+        </div>
 
-          {/* Custom Scenario Input */}
-          <div
-            className={`p-8 relative ${
-              theme === "dark"
-                ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer-lg"
-                : "glass-card"
-            }`}
-          >
-            {/* Corner decorations - only in dark mode */}
-            {theme === "dark" && (
-              <>
-                <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-sa-accent-cyan/50" />
-                <div className="absolute top-3 right-3 w-4 h-4 border-r-2 border-t-2 border-sa-accent-cyan/50" />
-                <div className="absolute bottom-3 left-3 w-4 h-4 border-l-2 border-b-2 border-sa-accent-cyan/50" />
-                <div className="absolute bottom-3 right-3 w-4 h-4 border-r-2 border-b-2 border-sa-accent-cyan/50" />
-              </>
-            )}
-
-            {/* Language Selection */}
-            <div className="mb-6">
-              <label
-                className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                }`}
-              >
-                Practice Language
-              </label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
-                  className={`w-full sm:w-auto min-w-[240px] px-4 py-3 text-left flex items-center justify-between gap-3 transition-colors ${
-                    theme === "dark"
-                      ? "bg-sa-bg-tertiary border border-sa-accent-purple/30 text-white hover:border-sa-accent-purple/50 clip-chamfer"
-                      : "input-light text-light-primary"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {getLanguageFlag(selectedLanguage)}
-                    </span>
-                    <span>{selectedLang?.name}</span>
-                    <span
-                      className={`text-sm ${
-                        theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                      }`}
-                    >
-                      ({selectedLang?.nativeName})
-                    </span>
-                  </span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isLanguageDropdownOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {isLanguageDropdownOpen && (
-                  <div
-                    className={`absolute z-50 mt-2 w-full sm:w-80 max-h-60 overflow-y-auto shadow-lg ${
-                      theme === "dark"
-                        ? "bg-sa-bg-tertiary border border-sa-accent-purple/30 clip-chamfer"
-                        : "bg-white rounded-xl border border-gray-200"
-                    }`}
-                  >
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => {
-                          setSelectedLanguage(lang.code);
-                          setIsLanguageDropdownOpen(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-3 transition-colors ${
-                          theme === "dark"
-                            ? selectedLanguage === lang.code
-                              ? "bg-sa-accent-purple/20 text-sa-accent-purple"
-                              : "text-white hover:bg-sa-accent-purple/10"
-                            : selectedLanguage === lang.code
-                              ? "bg-light-accent/10 text-light-accent"
-                              : "text-light-primary hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">{getLanguageFlag(lang.code)}</span>
-                        <span>{lang.name}</span>
-                        <span
-                          className={`text-sm ${
-                            theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                          }`}
-                        >
-                          ({lang.nativeName})
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <p
-                className={`mt-2 text-xs ${
-                  theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                }`}
-              >
-                The avatar will respond in this language
-              </p>
-            </div>
-
-            <label
-              className={`block text-lg font-semibold mb-4 ${
-                theme === "dark" ? "text-white" : "text-light-primary"
-              }`}
-            >
-              What scenario do you want to practice?
-            </label>
-
-            <textarea
-              value={customScenario}
-              onChange={(e) => setCustomScenario(e.target.value)}
-              placeholder="e.g., I'm interviewing at Google, and the interviewer is a serious HR manager..."
-              className={`w-full px-5 py-4 resize-none transition-all ${
-                theme === "dark"
-                  ? "bg-sa-bg-tertiary border border-sa-accent-cyan/20 text-white placeholder-sa-text-muted focus:border-sa-accent-cyan focus:outline-none focus:shadow-neon-cyan clip-chamfer"
-                  : "input-light"
-              }`}
-              rows={5}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
+          {step === 1 && (
+            <StepScenario
+              initialScenario={sessionData.scenario}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+              onNext={(scenario) => handleNext({ scenario, description: scenario })} // Pre-fill description with scenario text
             />
+          )}
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={handleStartPractice}
-                disabled={!customScenario.trim() || isLoading}
-                className={`flex-1 px-6 py-4 font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                  theme === "dark"
-                    ? "bg-sa-accent-cyan text-sa-bg-primary hover:shadow-neon-cyan-strong clip-chamfer"
-                    : "btn-light-primary"
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <span
-                      className={`w-5 h-5 border-2 rounded-full animate-spin ${
-                        theme === "dark"
-                          ? "border-sa-bg-primary/30 border-t-sa-bg-primary"
-                          : "border-light-accent/30 border-t-light-accent"
-                      }`}
-                    />
-                    Initializing...
-                  </>
-                ) : (
-                  "Start Practice"
-                )}
-              </button>
-            </div>
+          {step === 2 && (
+            <StepDetails
+              initialData={{
+                title: sessionData.title,
+                description: sessionData.description,
+                goal: sessionData.goal,
+                difficulty: sessionData.difficulty,
+              }}
+              onNext={(data) => handleNext(data)}
+              onBack={handleBack}
+            />
+          )}
 
-            {/* Example scenarios */}
-            <div
-              className={`mt-8 pt-6 border-t ${
-                theme === "dark" ? "border-sa-accent-cyan/10" : "border-gray-200"
-              }`}
-            >
-              <p
-                className={`text-sm mb-3 ${
-                  theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                }`}
-              >
-                Example scenarios:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Job interview for a software engineer position",
-                  "Negotiating a raise with my manager",
-                  "Networking at a tech conference",
-                  "Handling a difficult customer complaint",
-                ].map((example) => (
-                  <button
-                    key={example}
-                    onClick={() => setCustomScenario(example)}
-                    className={`text-xs px-3 py-1.5 transition-colors ${
-                      theme === "dark"
-                        ? "bg-sa-bg-tertiary border border-sa-accent-purple/20 text-sa-text-secondary hover:text-white hover:border-sa-accent-purple/50 clip-chamfer"
-                        : "bg-white border border-gray-200 text-light-secondary hover:text-light-accent hover:border-light-accent/50 rounded-lg"
-                    }`}
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          {step === 3 && (
+            <StepAvatar
+              initialData={{
+                avatarId: sessionData.avatarId,
+                customName: sessionData.customName,
+                customRole: sessionData.customRole,
+                customPersonality: sessionData.customPersonality,
+                avatarUrl: sessionData.avatarUrl,
+              }}
+              onNext={(data) => handleNext(data)}
+              onBack={handleBack}
+            />
+          )}
 
-          {/* Info note */}
-          <div className="mt-8 text-center">
-            <p
-              className={`text-sm ${
-                theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-              }`}
-            >
-              The avatar will wait for you to speak first. Take your time to
-              start the conversation.
-            </p>
-          </div>
+          {step === 4 && (
+            <StepSettings
+              initialData={{
+                duration: sessionData.duration,
+                autoWrap: sessionData.autoWrap,
+              }}
+              onNext={(data) => handleNext(data)}
+              onBack={handleBack}
+            />
+          )}
         </div>
       </div>
     </main>

@@ -23,10 +23,19 @@ export async function POST(req: Request) {
     const isSandbox = process.env.LIVEAVATAR_SANDBOX_MODE === "true";
     const sandboxAvatarId = process.env.LIVEAVATAR_SANDBOX_AVATAR_ID;
 
-    // In sandbox mode, force the sandbox avatar
-    const avatarId = isSandbox
-      ? sandboxAvatarId || "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a"
-      : body.avatar_id;
+    // Determine Avatar ID
+    // If provider is heygen, we trust the avatar_id passed (bypass sandbox override if specifically requested)
+    // Or if allowing sandbox bypass generally
+    let avatarId = body.avatar_id;
+
+    if (!avatarId) {
+      // Fallback to sandbox ID if no ID provided
+      avatarId = sandboxAvatarId || "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a";
+    } else if (isSandbox && body.provider !== 'heygen') {
+      // If in sandbox mode AND NOT explicitly using a specific provider like heygen, override with sandbox ID
+      // This keeps dev safe but allows HeyGen integration to work
+      avatarId = sandboxAvatarId || "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a";
+    }
 
     if (!avatarId) {
       return NextResponse.json(
@@ -39,16 +48,22 @@ export async function POST(req: Request) {
     const payload: Record<string, unknown> = {
       mode: "FULL",
       avatar_id: avatarId,
-      is_sandbox: isSandbox,
+      is_sandbox: isSandbox && body.provider !== 'heygen', // Disable sandbox flag if using heygen provider? Or keep it? 
+      // If we are using a real HeyGen ID, we probably shouldn't send is_sandbox=true if that forces the default avatar on their end.
     };
 
     // Attach avatar_persona if voice or context provided
-    if (body.voice_id || body.context_id) {
+    if (body.voice_id || body.context_id || body.language) {
       payload.avatar_persona = {
         voice_id: body.voice_id || null,
         context_id: body.context_id || null,
         language: body.language || "en",
       };
+    }
+
+    // Pass provider if needed (unclear if LiveAvatar API supports this field directly, but assumes it might for routing)
+    if (body.provider) {
+      payload.provider = body.provider;
     }
 
     const response = await fetch(

@@ -313,6 +313,7 @@ export function useLiveAvatar() {
             voice_id: config.voiceId,
             context_id: config.contextId,
             language: config.language,
+            provider: (config as any).provider, // Pass provider if present
           }),
         });
 

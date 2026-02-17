@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useTheme } from "./ThemeProvider";
+import { useTheme } from "next-themes";
 
 interface UserCameraFeedProps {
   isUserSpeaking: boolean;
@@ -163,17 +163,15 @@ export function UserCameraFeed({
     return (
       <div className="fixed bottom-6 right-6 z-50">
         <div
-          className={`w-[180px] h-[135px] md:w-[240px] md:h-[180px] flex items-center justify-center ${
-            theme === "dark"
+          className={`w-[180px] h-[135px] md:w-[240px] md:h-[180px] flex items-center justify-center ${theme === "dark"
               ? "bg-sa-bg-secondary border border-sa-text-muted/30 clip-chamfer"
               : "glass-card-sm"
-          }`}
+            }`}
         >
           <div className="text-center p-4">
             <div
-              className={`text-xs ${
-                theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-              }`}
+              className={`text-xs ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                }`}
             >
               {error}
             </div>
@@ -189,13 +187,12 @@ export function UserCameraFeed({
       {onToggleMic && (
         <button
           onClick={onToggleMic}
-          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-            isMicEnabled
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${isMicEnabled
               ? theme === "dark"
                 ? "bg-sa-bg-tertiary/80 text-sa-text-secondary hover:text-white"
                 : "bg-white/80 text-light-secondary hover:text-light-primary"
               : "bg-red-500/80 text-white hover:bg-red-500"
-          }`}
+            }`}
           title={isMicEnabled ? "Mute microphone" : "Unmute microphone"}
         >
           {isMicEnabled ? (
@@ -207,13 +204,12 @@ export function UserCameraFeed({
       )}
       <button
         onClick={toggleCamera}
-        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-          cameraEnabled
+        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${cameraEnabled
             ? theme === "dark"
               ? "bg-sa-bg-tertiary/80 text-sa-text-secondary hover:text-white"
               : "bg-white/80 text-light-secondary hover:text-light-primary"
             : "bg-red-500/80 text-white hover:bg-red-500"
-        }`}
+          }`}
         title={cameraEnabled ? "Turn off camera" : "Turn on camera"}
       >
         {cameraEnabled ? (
@@ -228,29 +224,26 @@ export function UserCameraFeed({
   // Status indicator component
   const StatusIndicator = () => (
     <div
-      className={`absolute bottom-2 left-2 flex items-center gap-1.5 ${
-        theme === "light"
+      className={`absolute bottom-2 left-2 flex items-center gap-1.5 ${theme === "light"
           ? "bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full"
           : ""
-      }`}
+        }`}
     >
       <span
-        className={`w-2 h-2 rounded-full ${
-          isUserSpeaking
+        className={`w-2 h-2 rounded-full ${isUserSpeaking
             ? theme === "dark"
               ? "bg-sa-accent-cyan animate-pulse"
               : "bg-light-accent animate-pulse"
             : theme === "dark"
-            ? "bg-sa-text-muted"
-            : "bg-gray-400"
-        }`}
+              ? "bg-sa-text-muted"
+              : "bg-gray-400"
+          }`}
       />
       <span
-        className={`text-[10px] uppercase tracking-wider ${
-          theme === "dark"
+        className={`text-[10px] uppercase tracking-wider ${theme === "dark"
             ? "text-sa-text-secondary"
             : "text-light-text-primary font-medium"
-        }`}
+          }`}
       >
         {isUserSpeaking ? "Speaking" : "You"}
       </span>
@@ -260,14 +253,12 @@ export function UserCameraFeed({
   // Camera off placeholder
   const CameraOffPlaceholder = () => (
     <div
-      className={`absolute inset-0 flex items-center justify-center ${
-        theme === "dark" ? "bg-sa-bg-tertiary" : "bg-gray-200"
-      }`}
+      className={`absolute inset-0 flex items-center justify-center ${theme === "dark" ? "bg-sa-bg-tertiary" : "bg-gray-200"
+        }`}
     >
       <VideoOffIcon
-        className={`w-8 h-8 ${
-          theme === "dark" ? "text-sa-text-muted" : "text-gray-400"
-        }`}
+        className={`w-8 h-8 ${theme === "dark" ? "text-sa-text-muted" : "text-gray-400"
+          }`}
       />
     </div>
   );
@@ -275,18 +266,16 @@ export function UserCameraFeed({
   // Loading state
   const LoadingState = () => (
     <div
-      className={`absolute inset-0 flex items-center justify-center ${
-        theme === "dark"
+      className={`absolute inset-0 flex items-center justify-center ${theme === "dark"
           ? "bg-sa-bg-secondary clip-chamfer"
           : "glass-card-sm"
-      }`}
+        }`}
     >
       <div
-        className={`w-6 h-6 border-2 rounded-full animate-spin ${
-          theme === "dark"
+        className={`w-6 h-6 border-2 rounded-full animate-spin ${theme === "dark"
             ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
             : "border-light-accent/30 border-t-light-accent"
-        }`}
+          }`}
       />
     </div>
   );
@@ -295,13 +284,12 @@ export function UserCameraFeed({
     <div className="fixed bottom-6 right-6 z-50">
       {/* Outer container with theme-specific styling */}
       <div
-        className={`relative transition-all duration-300 ${
-          isUserSpeaking
+        className={`relative transition-all duration-300 ${isUserSpeaking
             ? theme === "dark"
               ? "speaking-pulse"
               : "camera-ring-speaking-light"
             : ""
-        }`}
+          }`}
       >
         {/* HUD frame decorations - dark mode only */}
         {theme === "dark" && (
@@ -315,28 +303,24 @@ export function UserCameraFeed({
 
         {/* Video container */}
         <div
-          className={`relative overflow-hidden transition-all duration-300 ${
-            theme === "dark"
-              ? `clip-chamfer ${
-                  isUserSpeaking
-                    ? "border-2 border-sa-accent-cyan shadow-neon-cyan"
-                    : "border border-sa-accent-cyan/40"
-                }`
-              : `rounded-2xl ${
-                  isUserSpeaking
-                    ? "shadow-accent-violet-strong"
-                    : "camera-ring-light shadow-glass"
-                }`
-          }`}
+          className={`relative overflow-hidden transition-all duration-300 ${theme === "dark"
+              ? `clip-chamfer ${isUserSpeaking
+                ? "border-2 border-sa-accent-cyan shadow-neon-cyan"
+                : "border border-sa-accent-cyan/40"
+              }`
+              : `rounded-2xl ${isUserSpeaking
+                ? "shadow-accent-violet-strong"
+                : "camera-ring-light shadow-glass"
+              }`
+            }`}
         >
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className={`w-[180px] h-[135px] md:w-[240px] md:h-[180px] object-cover transform scale-x-[-1] ${
-              !cameraEnabled ? "invisible" : ""
-            }`}
+            className={`w-[180px] h-[135px] md:w-[240px] md:h-[180px] object-cover transform scale-x-[-1] ${!cameraEnabled ? "invisible" : ""
+              }`}
           />
 
           {/* Camera off placeholder */}
@@ -344,11 +328,10 @@ export function UserCameraFeed({
 
           {/* Overlay effect */}
           <div
-            className={`absolute inset-0 pointer-events-none ${
-              theme === "dark"
+            className={`absolute inset-0 pointer-events-none ${theme === "dark"
                 ? "bg-gradient-to-b from-transparent via-sa-accent-cyan/5 to-transparent opacity-50"
                 : "bg-gradient-to-b from-white/10 via-transparent to-black/10"
-            }`}
+              }`}
           />
 
           {/* Status indicator */}

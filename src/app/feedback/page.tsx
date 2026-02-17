@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useTheme } from "@/components/ThemeProvider";
+import { useTheme } from "next-themes";
 
 interface SpeakEvent {
   type: "avatar" | "user";
@@ -72,6 +72,7 @@ export default function FeedbackPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { theme } = useTheme();
 
   // Fetch transcript from LiveAvatar API
@@ -122,6 +123,7 @@ export default function FeedbackPage() {
     };
 
     loadSessionData();
+    setMounted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -264,38 +266,36 @@ export default function FeedbackPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (!mounted) return null;
+
   if (!sessionData) {
     return (
       <main
-        className={`min-h-screen flex items-center justify-center relative overflow-hidden ${
-          theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
-        }`}
+        className={`min-h-screen flex items-center justify-center relative overflow-hidden ${theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
+          }`}
       >
         {theme === "dark" && (
           <div className="absolute top-1/4 left-0 w-96 h-96 bg-sa-accent-cyan/10 rounded-full blur-3xl" />
         )}
         <div
-          className={`text-center relative z-10 ${
-            theme === "dark" ? "text-white" : "text-light-primary"
-          }`}
+          className={`text-center relative z-10 ${theme === "dark" ? "text-white" : "text-light-primary"
+            }`}
         >
           <div
-            className={`w-16 h-16 mx-auto mb-6 border-2 rounded-full flex items-center justify-center ${
-              theme === "dark"
-                ? "border-sa-accent-cyan/50"
-                : "border-light-accent/50"
-            }`}
+            className={`w-16 h-16 mx-auto mb-6 border-2 rounded-full flex items-center justify-center ${theme === "dark"
+              ? "border-sa-accent-cyan/50"
+              : "border-light-accent/50"
+              }`}
           >
             <span className="text-2xl">?</span>
           </div>
           <p className="text-2xl mb-4">No session data found</p>
           <Link
             href="/demo"
-            className={`transition-colors underline ${
-              theme === "dark"
-                ? "text-sa-accent-cyan hover:text-white"
-                : "text-light-accent hover:text-light-primary"
-            }`}
+            className={`transition-colors underline ${theme === "dark"
+              ? "text-sa-accent-cyan hover:text-white"
+              : "text-light-accent hover:text-light-primary"
+              }`}
           >
             Start a new practice session
           </Link>
@@ -306,9 +306,8 @@ export default function FeedbackPage() {
 
   return (
     <main
-      className={`min-h-screen relative overflow-hidden ${
-        theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
-      }`}
+      className={`min-h-screen relative overflow-hidden ${theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
+        }`}
     >
       {/* Ambient glow - only in dark mode */}
       {theme === "dark" && (
@@ -323,32 +322,28 @@ export default function FeedbackPage() {
         <header className="flex justify-between items-center mb-12">
           <Link
             href="/"
-            className={`text-2xl font-bold ${
-              theme === "dark"
-                ? "text-white text-glow-cyan"
-                : "text-light-primary text-glow-violet"
-            }`}
+            className={`text-2xl font-bold ${theme === "dark"
+              ? "text-white text-glow-cyan"
+              : "text-light-primary text-glow-violet"
+              }`}
           >
             SocialAnimal
           </Link>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div
-              className={`flex items-center gap-2 px-4 py-2 ${
-                theme === "dark"
-                  ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer"
-                  : "glass-card-sm"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 ${theme === "dark"
+                ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer"
+                : "glass-card-sm"
+                }`}
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                }`}
+                className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
+                  }`}
               />
               <span
-                className={`text-sm font-medium ${
-                  theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                }`}
+                className={`text-sm font-medium ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
+                  }`}
               >
                 ANALYSIS COMPLETE
               </span>
@@ -360,25 +355,22 @@ export default function FeedbackPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div
-              className={`inline-block mb-4 px-4 py-1 text-sm font-medium ${
-                theme === "dark"
-                  ? "bg-sa-accent-purple/20 border border-sa-accent-purple/40 text-sa-accent-purple clip-chamfer"
-                  : "glass-card-sm text-purple-500"
-              }`}
+              className={`inline-block mb-4 px-4 py-1 text-sm font-medium ${theme === "dark"
+                ? "bg-sa-accent-purple/20 border border-sa-accent-purple/40 text-sa-accent-purple clip-chamfer"
+                : "glass-card-sm text-purple-500"
+                }`}
             >
               PERFORMANCE REPORT
             </div>
             <h1
-              className={`text-4xl md:text-5xl font-bold mb-4 ${
-                theme === "dark" ? "text-white" : "text-light-primary"
-              }`}
+              className={`text-4xl md:text-5xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-light-primary"
+                }`}
             >
               Communication Scorecard
             </h1>
             <p
-              className={`text-lg ${
-                theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-              }`}
+              className={`text-lg ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                }`}
             >
               Here&apos;s how you did in your practice session
             </p>
@@ -387,16 +379,14 @@ export default function FeedbackPage() {
           {isAnalyzing ? (
             <div className="text-center py-20">
               <div
-                className={`w-16 h-16 border-2 rounded-full animate-spin mx-auto mb-4 ${
-                  theme === "dark"
-                    ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
-                    : "border-light-accent/30 border-t-light-accent"
-                }`}
+                className={`w-16 h-16 border-2 rounded-full animate-spin mx-auto mb-4 ${theme === "dark"
+                  ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
+                  : "border-light-accent/30 border-t-light-accent"
+                  }`}
               />
               <p
-                className={`text-xl ${
-                  theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                }`}
+                className={`text-xl ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
+                  }`}
               >
                 Analyzing your conversation...
               </p>
@@ -405,11 +395,10 @@ export default function FeedbackPage() {
             <>
               {/* Overall Score */}
               <div
-                className={`p-8 mb-8 text-center relative ${
-                  theme === "dark"
-                    ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer-lg"
-                    : "glass-card"
-                }`}
+                className={`p-8 mb-8 text-center relative ${theme === "dark"
+                  ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer-lg"
+                  : "glass-card"
+                  }`}
               >
                 {/* Corner decorations - dark mode only */}
                 {theme === "dark" && (
@@ -422,9 +411,8 @@ export default function FeedbackPage() {
                 )}
 
                 <div
-                  className={`text-7xl font-bold mb-2 ${
-                    theme === "dark" ? "text-white" : "text-light-primary"
-                  }`}
+                  className={`text-7xl font-bold mb-2 ${theme === "dark" ? "text-white" : "text-light-primary"
+                    }`}
                 >
                   <span
                     className={
@@ -434,17 +422,15 @@ export default function FeedbackPage() {
                     {feedback.overallScore}
                   </span>
                   <span
-                    className={`text-4xl ${
-                      theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                    }`}
+                    className={`text-4xl ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                      }`}
                   >
                     /10
                   </span>
                 </div>
                 <p
-                  className={`text-lg ${
-                    theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                  }`}
+                  className={`text-lg ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                    }`}
                 >
                   Overall Performance
                 </p>
@@ -453,67 +439,58 @@ export default function FeedbackPage() {
               {/* Metrics Grid */}
               <div className="grid md:grid-cols-3 gap-4 mb-8">
                 <div
-                  className={`p-6 text-center ${
-                    theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                      : "glass-card"
-                  }`}
+                  className={`p-6 text-center ${theme === "dark"
+                    ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
+                    : "glass-card"
+                    }`}
                 >
                   <div
-                    className={`text-3xl font-bold mb-1 ${
-                      theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
-                    }`}
+                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
+                      }`}
                   >
                     {feedback.emotionalIntelligence}
                   </div>
                   <p
-                    className={`text-sm ${
-                      theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                    }`}
+                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                      }`}
                   >
                     Emotional Intelligence
                   </p>
                 </div>
                 <div
-                  className={`p-6 text-center ${
-                    theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                      : "glass-card"
-                  }`}
+                  className={`p-6 text-center ${theme === "dark"
+                    ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
+                    : "glass-card"
+                    }`}
                 >
                   <div
-                    className={`text-3xl font-bold mb-1 ${
-                      theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                    }`}
+                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
+                      }`}
                   >
                     {feedback.clarity}
                   </div>
                   <p
-                    className={`text-sm ${
-                      theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                    }`}
+                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                      }`}
                   >
                     Clarity
                   </p>
                 </div>
                 <div
-                  className={`p-6 text-center ${
-                    theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                      : "glass-card"
-                  }`}
+                  className={`p-6 text-center ${theme === "dark"
+                    ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
+                    : "glass-card"
+                    }`}
                 >
                   <div
-                    className={`text-3xl font-bold mb-1 ${
-                      theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
-                    }`}
+                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
+                      }`}
                   >
                     {feedback.pace}
                   </div>
                   <p
-                    className={`text-sm ${
-                      theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                    }`}
+                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                      }`}
                   >
                     Speech Pace
                   </p>
@@ -524,42 +501,37 @@ export default function FeedbackPage() {
               {feedback.rhythmMetrics && (
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   <div
-                    className={`p-6 ${
-                      theme === "dark"
-                        ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                        : "glass-card"
-                    }`}
+                    className={`p-6 ${theme === "dark"
+                      ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
+                      : "glass-card"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <p
-                          className={`text-xs uppercase tracking-wider mb-1 ${
-                            theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                          }`}
+                          className={`text-xs uppercase tracking-wider mb-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                            }`}
                         >
                           Interruptions
                         </p>
                         <div
-                          className={`text-2xl font-bold ${
-                            theme === "dark" ? "text-white" : "text-light-primary"
-                          }`}
+                          className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-light-primary"
+                            }`}
                         >
                           {feedback.rhythmMetrics.interruptionCount}
                           <span
-                            className={`text-sm ml-1 ${
-                              theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                            }`}
+                            className={`text-sm ml-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                              }`}
                           >
                             times
                           </span>
                         </div>
                       </div>
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          feedback.rhythmMetrics.interruptionCount > 3
-                            ? "bg-red-500/20 text-red-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center ${feedback.rhythmMetrics.interruptionCount > 3
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-green-500/20 text-green-400"
+                          }`}
                       >
                         {feedback.rhythmMetrics.interruptionCount > 3
                           ? "!"
@@ -568,47 +540,42 @@ export default function FeedbackPage() {
                     </div>
                   </div>
                   <div
-                    className={`p-6 ${
-                      theme === "dark"
-                        ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                        : "glass-card"
-                    }`}
+                    className={`p-6 ${theme === "dark"
+                      ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
+                      : "glass-card"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <p
-                          className={`text-xs uppercase tracking-wider mb-1 ${
-                            theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                          }`}
+                          className={`text-xs uppercase tracking-wider mb-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                            }`}
                         >
                           Avg Response Time
                         </p>
                         <div
-                          className={`text-2xl font-bold ${
-                            theme === "dark" ? "text-white" : "text-light-primary"
-                          }`}
+                          className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-light-primary"
+                            }`}
                         >
                           {feedback.rhythmMetrics.avgResponseLatency.toFixed(1)}
                           <span
-                            className={`text-sm ml-1 ${
-                              theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                            }`}
+                            className={`text-sm ml-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                              }`}
                           >
                             sec
                           </span>
                         </div>
                       </div>
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          feedback.rhythmMetrics.avgResponseLatency < 0.5
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : feedback.rhythmMetrics.avgResponseLatency > 4
+                        className={`w-12 h-12 rounded-full flex items-center justify-center ${feedback.rhythmMetrics.avgResponseLatency < 0.5
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : feedback.rhythmMetrics.avgResponseLatency > 4
                             ? "bg-yellow-500/20 text-yellow-400"
                             : "bg-green-500/20 text-green-400"
-                        }`}
+                          }`}
                       >
                         {feedback.rhythmMetrics.avgResponseLatency < 0.5 ||
-                        feedback.rhythmMetrics.avgResponseLatency > 4
+                          feedback.rhythmMetrics.avgResponseLatency > 4
                           ? "!"
                           : "✓"}
                       </div>
@@ -620,14 +587,12 @@ export default function FeedbackPage() {
               {/* Actionable Insights */}
               <div className="mb-8">
                 <h2
-                  className={`text-xl font-bold mb-4 flex items-center gap-2 ${
-                    theme === "dark" ? "text-white" : "text-light-primary"
-                  }`}
+                  className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
+                    }`}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
+                      }`}
                   />
                   Key Insights
                 </h2>
@@ -635,48 +600,41 @@ export default function FeedbackPage() {
                   {feedback.insights.map((insight, index) => (
                     <div
                       key={index}
-                      className={`p-6 border ${
-                        theme === "dark"
-                          ? `bg-sa-bg-secondary clip-chamfer-lg ${
-                              insight.type === "positive"
-                                ? "border-green-500/30"
-                                : "border-yellow-500/30"
-                            }`
-                          : `glass-card ${
-                              insight.type === "positive"
-                                ? "border-green-500/30"
-                                : "border-yellow-500/30"
-                            }`
-                      }`}
+                      className={`p-6 border ${theme === "dark"
+                        ? `bg-sa-bg-secondary clip-chamfer-lg ${insight.type === "positive"
+                          ? "border-green-500/30"
+                          : "border-yellow-500/30"
+                        }`
+                        : `glass-card ${insight.type === "positive"
+                          ? "border-green-500/30"
+                          : "border-yellow-500/30"
+                        }`
+                        }`}
                     >
                       <div className="flex items-start gap-4">
                         <div className="text-3xl">{insight.icon}</div>
                         <div className="flex-1">
                           <h3
-                            className={`text-lg font-bold mb-1 ${
-                              theme === "dark" ? "text-white" : "text-light-primary"
-                            }`}
+                            className={`text-lg font-bold mb-1 ${theme === "dark" ? "text-white" : "text-light-primary"
+                              }`}
                           >
                             {insight.title}
                           </h3>
                           <p
-                            className={`text-sm ${
-                              theme === "dark"
-                                ? "text-sa-text-secondary"
-                                : "text-light-secondary"
-                            }`}
+                            className={`text-sm ${theme === "dark"
+                              ? "text-sa-text-secondary"
+                              : "text-light-secondary"
+                              }`}
                           >
                             {insight.description}
                           </p>
                         </div>
                         <div
-                          className={`px-2 py-1 text-xs font-medium ${
-                            theme === "dark" ? "clip-chamfer" : "rounded-lg"
-                          } ${
-                            insight.type === "positive"
+                          className={`px-2 py-1 text-xs font-medium ${theme === "dark" ? "clip-chamfer" : "rounded-lg"
+                            } ${insight.type === "positive"
                               ? "bg-green-500/20 text-green-400"
                               : "bg-yellow-500/20 text-yellow-400"
-                          }`}
+                            }`}
                         >
                           {insight.type === "positive" ? "Strength" : "Improve"}
                         </div>
@@ -690,14 +648,12 @@ export default function FeedbackPage() {
               {feedback.practiceExercises && feedback.practiceExercises.length > 0 && (
                 <div className="mb-8">
                   <h2
-                    className={`text-xl font-bold mb-4 flex items-center gap-2 ${
-                      theme === "dark" ? "text-white" : "text-light-primary"
-                    }`}
+                    className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
+                      }`}
                   >
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        theme === "dark" ? "bg-sa-accent-purple" : "bg-purple-500"
-                      }`}
+                      className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-purple" : "bg-purple-500"
+                        }`}
                     />
                     Personalized Practice Exercises
                   </h2>
@@ -705,76 +661,68 @@ export default function FeedbackPage() {
                     {feedback.practiceExercises.map((exercise, index) => (
                       <div
                         key={index}
-                        className={`p-6 ${
-                          theme === "dark"
-                            ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                            : "glass-card"
-                        }`}
+                        className={`p-6 ${theme === "dark"
+                          ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
+                          : "glass-card"
+                          }`}
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div>
                             <h3
-                              className={`text-lg font-bold mb-1 ${
-                                theme === "dark" ? "text-white" : "text-light-primary"
-                              }`}
+                              className={`text-lg font-bold mb-1 ${theme === "dark" ? "text-white" : "text-light-primary"
+                                }`}
                             >
                               {exercise.title}
                             </h3>
                             <div className="flex items-center gap-4 text-sm">
                               <span
-                                className={`flex items-center gap-1 ${
-                                  theme === "dark"
-                                    ? "text-sa-accent-cyan"
-                                    : "text-light-accent"
-                                }`}
+                                className={`flex items-center gap-1 ${theme === "dark"
+                                  ? "text-sa-accent-cyan"
+                                  : "text-light-accent"
+                                  }`}
                               >
                                 <span>⏱️</span> {exercise.duration}
                               </span>
                               <span
-                                className={`flex items-center gap-1 ${
-                                  theme === "dark"
-                                    ? "text-sa-accent-purple"
-                                    : "text-purple-500"
-                                }`}
+                                className={`flex items-center gap-1 ${theme === "dark"
+                                  ? "text-sa-accent-purple"
+                                  : "text-purple-500"
+                                  }`}
                               >
                                 <span>🎯</span> {exercise.targetSkill}
                               </span>
                             </div>
                           </div>
                           <div
-                            className={`px-3 py-1 text-xs font-medium ${
-                              theme === "dark"
-                                ? "bg-sa-accent-purple/20 text-sa-accent-purple clip-chamfer"
-                                : "bg-purple-100 text-purple-500 rounded-lg"
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium ${theme === "dark"
+                              ? "bg-sa-accent-purple/20 text-sa-accent-purple clip-chamfer"
+                              : "bg-purple-100 text-purple-500 rounded-lg"
+                              }`}
                           >
                             Exercise {index + 1}
                           </div>
                         </div>
 
                         <p
-                          className={`text-sm mb-4 ${
-                            theme === "dark"
-                              ? "text-sa-text-secondary"
-                              : "text-light-secondary"
-                          }`}
+                          className={`text-sm mb-4 ${theme === "dark"
+                            ? "text-sa-text-secondary"
+                            : "text-light-secondary"
+                            }`}
                         >
                           {exercise.description}
                         </p>
 
                         <div
-                          className={`p-4 ${
-                            theme === "dark"
-                              ? "bg-sa-bg-tertiary clip-chamfer"
-                              : "bg-white/50 rounded-lg"
-                          }`}
+                          className={`p-4 ${theme === "dark"
+                            ? "bg-sa-bg-tertiary clip-chamfer"
+                            : "bg-white/50 rounded-lg"
+                            }`}
                         >
                           <p
-                            className={`text-xs uppercase tracking-wider mb-2 ${
-                              theme === "dark"
-                                ? "text-sa-text-muted"
-                                : "text-light-secondary"
-                            }`}
+                            className={`text-xs uppercase tracking-wider mb-2 ${theme === "dark"
+                              ? "text-sa-text-muted"
+                              : "text-light-secondary"
+                              }`}
                           >
                             Steps to Practice
                           </p>
@@ -782,18 +730,16 @@ export default function FeedbackPage() {
                             {exercise.steps.map((step, stepIndex) => (
                               <li
                                 key={stepIndex}
-                                className={`flex items-start gap-3 text-sm ${
-                                  theme === "dark"
-                                    ? "text-sa-text-secondary"
-                                    : "text-light-secondary"
-                                }`}
+                                className={`flex items-start gap-3 text-sm ${theme === "dark"
+                                  ? "text-sa-text-secondary"
+                                  : "text-light-secondary"
+                                  }`}
                               >
                                 <span
-                                  className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                                    theme === "dark"
-                                      ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
-                                      : "bg-light-accent/20 text-light-accent"
-                                  }`}
+                                  className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${theme === "dark"
+                                    ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
+                                    : "bg-light-accent/20 text-light-accent"
+                                    }`}
                                 >
                                   {stepIndex + 1}
                                 </span>
@@ -813,46 +759,41 @@ export default function FeedbackPage() {
                 <div className="mb-8">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <h2
-                      className={`text-xl font-bold flex items-center gap-2 ${
-                        theme === "dark" ? "text-white" : "text-light-primary"
-                      }`}
+                      className={`text-xl font-bold flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
+                        }`}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${
-                          theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                        }`}
+                        className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
+                          }`}
                       />
                       Conversation Transcript
                     </h2>
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setShowTranscript(!showTranscript)}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                          theme === "dark"
-                            ? "bg-sa-bg-tertiary border border-sa-accent-cyan/30 text-sa-accent-cyan hover:border-sa-accent-cyan/50 clip-chamfer"
-                            : "bg-white border border-light-accent/30 text-light-accent hover:border-light-accent/50 rounded-lg"
-                        }`}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${theme === "dark"
+                          ? "bg-sa-bg-tertiary border border-sa-accent-cyan/30 text-sa-accent-cyan hover:border-sa-accent-cyan/50 clip-chamfer"
+                          : "bg-white border border-light-accent/30 text-light-accent hover:border-light-accent/50 rounded-lg"
+                          }`}
                       >
                         {showTranscript ? "Hide" : "Show"} Transcript
                       </button>
                       <button
                         onClick={downloadTranscript}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
-                          theme === "dark"
-                            ? "bg-sa-bg-tertiary border border-sa-accent-purple/30 text-sa-accent-purple hover:border-sa-accent-purple/50 clip-chamfer"
-                            : "bg-white border border-purple-300 text-purple-500 hover:border-purple-400 rounded-lg"
-                        }`}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${theme === "dark"
+                          ? "bg-sa-bg-tertiary border border-sa-accent-purple/30 text-sa-accent-purple hover:border-sa-accent-purple/50 clip-chamfer"
+                          : "bg-white border border-purple-300 text-purple-500 hover:border-purple-400 rounded-lg"
+                          }`}
                       >
                         <DownloadIcon className="w-4 h-4" />
                         TXT
                       </button>
                       <button
                         onClick={downloadAsJSON}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
-                          theme === "dark"
-                            ? "bg-sa-bg-tertiary border border-sa-text-muted/30 text-sa-text-secondary hover:border-sa-text-muted/50 clip-chamfer"
-                            : "bg-white border border-gray-300 text-gray-500 hover:border-gray-400 rounded-lg"
-                        }`}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${theme === "dark"
+                          ? "bg-sa-bg-tertiary border border-sa-text-muted/30 text-sa-text-secondary hover:border-sa-text-muted/50 clip-chamfer"
+                          : "bg-white border border-gray-300 text-gray-500 hover:border-gray-400 rounded-lg"
+                          }`}
                       >
                         <DownloadIcon className="w-4 h-4" />
                         JSON
@@ -862,25 +803,22 @@ export default function FeedbackPage() {
 
                   {showTranscript && (
                     <div
-                      className={`p-6 max-h-96 overflow-y-auto ${
-                        theme === "dark"
-                          ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                          : "glass-card"
-                      }`}
+                      className={`p-6 max-h-96 overflow-y-auto ${theme === "dark"
+                        ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
+                        : "glass-card"
+                        }`}
                     >
                       {isLoadingTranscript ? (
                         <div className="flex items-center justify-center py-8">
                           <div
-                            className={`w-8 h-8 border-2 rounded-full animate-spin ${
-                              theme === "dark"
-                                ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
-                                : "border-light-accent/30 border-t-light-accent"
-                            }`}
+                            className={`w-8 h-8 border-2 rounded-full animate-spin ${theme === "dark"
+                              ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
+                              : "border-light-accent/30 border-t-light-accent"
+                              }`}
                           />
                           <span
-                            className={`ml-3 ${
-                              theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                            }`}
+                            className={`ml-3 ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                              }`}
                           >
                             Loading transcript...
                           </span>
@@ -888,9 +826,8 @@ export default function FeedbackPage() {
                       ) : sessionData.transcript.length === 0 ? (
                         <div className="text-center py-8">
                           <p
-                            className={`mb-4 ${
-                              theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                            }`}
+                            className={`mb-4 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
+                              }`}
                           >
                             No transcript available
                           </p>
@@ -906,11 +843,10 @@ export default function FeedbackPage() {
                                 }
                                 setIsLoadingTranscript(false);
                               }}
-                              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                                theme === "dark"
-                                  ? "bg-sa-accent-cyan/20 text-sa-accent-cyan hover:bg-sa-accent-cyan/30 clip-chamfer"
-                                  : "bg-light-accent/20 text-light-accent hover:bg-light-accent/30 rounded-lg"
-                              }`}
+                              className={`px-4 py-2 text-sm font-medium transition-colors ${theme === "dark"
+                                ? "bg-sa-accent-cyan/20 text-sa-accent-cyan hover:bg-sa-accent-cyan/30 clip-chamfer"
+                                : "bg-light-accent/20 text-light-accent hover:bg-light-accent/30 rounded-lg"
+                                }`}
                             >
                               Retry Loading Transcript
                             </button>
@@ -921,33 +857,30 @@ export default function FeedbackPage() {
                           {sessionData.transcript.map((entry, index) => (
                             <div
                               key={index}
-                              className={`flex gap-3 ${
-                                entry.speaker === "You" ? "flex-row-reverse" : ""
-                              }`}
+                              className={`flex gap-3 ${entry.speaker === "You" ? "flex-row-reverse" : ""
+                                }`}
                             >
                               <div
-                                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                  entry.speaker === "You"
-                                    ? theme === "dark"
-                                      ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
-                                      : "bg-light-accent/20 text-light-accent"
-                                    : theme === "dark"
+                                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${entry.speaker === "You"
+                                  ? theme === "dark"
+                                    ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
+                                    : "bg-light-accent/20 text-light-accent"
+                                  : theme === "dark"
                                     ? "bg-sa-accent-purple/20 text-sa-accent-purple"
                                     : "bg-purple-100 text-purple-500"
-                                }`}
+                                  }`}
                               >
                                 {entry.speaker === "You" ? "Y" : "A"}
                               </div>
                               <div
-                                className={`flex-1 p-3 rounded-lg ${
-                                  entry.speaker === "You"
-                                    ? theme === "dark"
-                                      ? "bg-sa-accent-cyan/10 text-sa-text-secondary"
-                                      : "bg-light-accent/10 text-light-secondary"
-                                    : theme === "dark"
+                                className={`flex-1 p-3 rounded-lg ${entry.speaker === "You"
+                                  ? theme === "dark"
+                                    ? "bg-sa-accent-cyan/10 text-sa-text-secondary"
+                                    : "bg-light-accent/10 text-light-secondary"
+                                  : theme === "dark"
                                     ? "bg-sa-bg-tertiary text-sa-text-secondary"
                                     : "bg-white/70 text-light-secondary"
-                                }`}
+                                  }`}
                               >
                                 <p className="text-sm">{entry.text}</p>
                               </div>
@@ -964,21 +897,19 @@ export default function FeedbackPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/demo"
-                  className={`px-8 py-4 font-bold transition-all text-center ${
-                    theme === "dark"
-                      ? "bg-sa-accent-cyan text-sa-bg-primary hover:shadow-neon-cyan-strong clip-chamfer"
-                      : "btn-light-primary rounded-xl"
-                  }`}
+                  className={`px-8 py-4 font-bold transition-all text-center ${theme === "dark"
+                    ? "bg-sa-accent-cyan text-sa-bg-primary hover:shadow-neon-cyan-strong clip-chamfer"
+                    : "btn-light-primary rounded-xl"
+                    }`}
                 >
                   Try Again
                 </Link>
                 <Link
                   href="/"
-                  className={`px-8 py-4 font-semibold transition-all text-center ${
-                    theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-text-muted/30 text-white hover:border-sa-text-muted/50 clip-chamfer"
-                      : "bg-white border border-gray-300 text-light-primary hover:border-gray-400 rounded-xl"
-                  }`}
+                  className={`px-8 py-4 font-semibold transition-all text-center ${theme === "dark"
+                    ? "bg-sa-bg-secondary border border-sa-text-muted/30 text-white hover:border-sa-text-muted/50 clip-chamfer"
+                    : "bg-white border border-gray-300 text-light-primary hover:border-gray-400 rounded-xl"
+                    }`}
                 >
                   Back to Home
                 </Link>
@@ -987,19 +918,17 @@ export default function FeedbackPage() {
           ) : (
             <div className="text-center py-20">
               <p
-                className={`text-xl ${
-                  theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                }`}
+                className={`text-xl ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
+                  }`}
               >
                 Failed to analyze conversation
               </p>
               <Link
                 href="/demo"
-                className={`inline-block mt-4 transition-colors ${
-                  theme === "dark"
-                    ? "text-sa-accent-cyan hover:text-white"
-                    : "text-light-accent hover:text-light-primary"
-                }`}
+                className={`inline-block mt-4 transition-colors ${theme === "dark"
+                  ? "text-sa-accent-cyan hover:text-white"
+                  : "text-light-accent hover:text-light-primary"
+                  }`}
               >
                 Try again
               </Link>

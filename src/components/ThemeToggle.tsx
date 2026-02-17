@@ -1,34 +1,43 @@
 "use client";
 
-import { useTheme } from "./ThemeProvider";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 interface ThemeToggleProps {
   className?: string;
 }
 
 export function ThemeToggle({ className = "" }: ThemeToggleProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const currentTheme = resolvedTheme || theme;
 
   return (
     <button
-      onClick={toggleTheme}
-      className={`relative px-4 py-2 rounded-lg transition-all duration-300 ${
-        theme === "dark"
-          ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 text-sa-accent-cyan hover:border-sa-accent-cyan/50"
-          : "glass-card-sm text-light-accent hover:shadow-accent-violet"
-      } ${className}`}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
+      className={`relative px-4 py-2 rounded-lg transition-all duration-300 ${currentTheme === "dark"
+        ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 text-sa-accent-cyan hover:border-sa-accent-cyan/50"
+        : "glass-card-sm text-light-accent hover:shadow-accent-violet"
+        } ${className}`}
+      aria-label={`Switch to ${currentTheme === "dark" ? "light" : "dark"} mode`}
     >
       <span className="flex items-center gap-2">
-        {theme === "dark" ? (
-          <>
-            <SunIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">Light</span>
-          </>
-        ) : (
+        {currentTheme === "dark" ? (
           <>
             <MoonIcon className="w-4 h-4" />
             <span className="text-sm font-medium">Dark</span>
+          </>
+        ) : (
+          <>
+            <SunIcon className="w-4 h-4" />
+            <span className="text-sm font-medium">Light</span>
           </>
         )}
       </span>

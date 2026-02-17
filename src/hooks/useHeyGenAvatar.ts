@@ -1,187 +1,160 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from 'react';
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
   TaskType,
-  TaskMode,
-} from "@heygen/streaming-avatar";
+  VoiceEmotion
+} from '@heygen/streaming-avatar';
 
-export interface HeyGenAvatarConfig {
-  onAvatarStartedSpeaking?: () => void;
-  onAvatarStoppedSpeaking?: () => void;
-  onStreamReady?: () => void;
-  onStreamDisconnected?: () => void;
+export interface UseHeyGenAvatarProps {
+  tokenUrl?: string;
+  language?: string;
 }
 
-export function useHeyGenAvatar(config?: HeyGenAvatarConfig) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+export function useHeyGenAvatar({ tokenUrl = '/api/heygen/token', language = 'en' }: UseHeyGenAvatarProps = {}) {
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [debug, setDebug] = useState<string>('Init');
+  const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false); // Placeholder for VAD if needed
+  const [phase, setPhase] = useState<'idle' | 'connecting' | 'connected' | 'error' | 'disconnected'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const avatarRef = useRef<StreamingAvatar | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaStreamRef = useRef<HTMLVideoElement>(null);
 
-  // Initialize avatar session
-  const connect = useCallback(async () => {
-    setIsLoading(true);
+  // Initialize Avatar SDK
+  // We don't init in useEffect to avoid double init, we do it on startSession
+
+  const startSession = useCallback(async (avatarId: string, avatarUrl?: string) => {
+    setPhase('connecting');
     setError(null);
+    setDebug('Fetching token...');
 
     try {
-      // Get session token from our backend
-      const response = await fetch("/api/heygen/session", {
-        method: "POST",
-      });
+      const response = await fetch(tokenUrl, { method: 'POST' });
+      const data = await response.json();
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Backend error:", errorData);
-        throw new Error(errorData.error || "Failed to create streaming session");
+      if (!data.data || !data.data.token) {
+        // Log the error detail if available
+        console.error("Token fetch failed:", data);
+        throw new Error(data.error || 'Failed to get access token');
       }
 
-      const data = await response.json();
-      const { session_id, access_token, sdp, ice_servers2 } = data.data;
+      const token = data.data.token;
 
-      setSessionId(session_id);
-
-      // Initialize the StreamingAvatar
-      const avatar = new StreamingAvatar({
-        token: access_token,
+      avatarRef.current = new StreamingAvatar({
+        token: token,
       });
 
-      avatarRef.current = avatar;
-
-      // Set up event listeners
-      avatar.on(StreamingEvents.AVATAR_START_TALKING, () => {
-        console.log("Avatar started talking");
-        setIsSpeaking(true);
-        config?.onAvatarStartedSpeaking?.();
+      // Event Listeners
+      avatarRef.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
+        setIsAvatarSpeaking(true);
+      });
+      avatarRef.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
+        setIsAvatarSpeaking(false);
+      });
+      avatarRef.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
+        console.log('Stream disconnected');
+        setPhase('disconnected');
+        endSession();
+      });
+      avatarRef.current.on(StreamingEvents.STREAM_READY, (event) => {
+        console.log('Stream ready:', event.detail);
+        setStream(event.detail);
+        setPhase('connected');
       });
 
-      avatar.on(StreamingEvents.AVATAR_STOP_TALKING, () => {
-        console.log("Avatar stopped talking");
-        setIsSpeaking(false);
-        config?.onAvatarStoppedSpeaking?.();
+      let finalAvatarId = avatarId;
+
+      // Handle Custom Upload (Talking Photo)
+      if (avatarId === 'custom' && avatarUrl) {
+        setDebug('Uploading photo...');
+        try {
+          const uploadRes = await fetch('/api/heygen/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: avatarUrl })
+          });
+
+          if (!uploadRes.ok) {
+            const uploadErr = await uploadRes.json();
+            throw new Error(uploadErr.error || 'Failed to upload photo');
+          }
+
+          const uploadData = await uploadRes.json();
+          if (uploadData.data && uploadData.data.talking_photo_id) {
+            finalAvatarId = uploadData.data.talking_photo_id;
+            setDebug('Photo uploaded. Starting session...');
+            console.log("Using Talking Photo ID:", finalAvatarId);
+          } else {
+            throw new Error('No talking photo ID returned');
+          }
+        } catch (uploadError) {
+          console.error("Upload flow failed:", uploadError);
+          throw new Error("Failed to process custom photo. " + (uploadError instanceof Error ? uploadError.message : ""));
+        }
+      }
+
+      setDebug('Starting avatar...');
+
+      console.log('Starting avatar with ID:', finalAvatarId, 'language:', language);
+
+      await avatarRef.current.createStartAvatar({
+        quality: AvatarQuality.Medium,
+        avatarName: finalAvatarId,
+        language: language,
       });
 
-      avatar.on(StreamingEvents.STREAM_READY, (event) => {
-        console.log("Stream ready:", event.detail);
-        mediaStreamRef.current = event.detail;
-        setIsConnected(true);
-        config?.onStreamReady?.();
-      });
+      setDebug('Avatar started');
 
-      avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
-        console.log("Stream disconnected");
-        setIsConnected(false);
-        config?.onStreamDisconnected?.();
-      });
-
-      // Start the avatar with the SDP and ICE servers from backend
-      await avatar.createStartAvatar({
-        quality: AvatarQuality.High,
-        avatarName: "Wayne_20240711", // You can customize this
-        voice: {
-          voiceId: "1bd001e7e50f421d891986aad5158bc8", // You can customize this
-        },
-      });
-
-      console.log("Avatar session started successfully");
-    } catch (err) {
-      console.error("Error connecting to HeyGen:", err);
-      setError(err instanceof Error ? err.message : "Failed to connect");
-    } finally {
-      setIsLoading(false);
+    } catch (e: any) {
+      console.error('Failed to start HeyGen session:', e);
+      // The HeyGen SDK throws APIError with responseText
+      const errorMsg = e?.responseText || e?.message || 'Unknown error';
+      console.error('HeyGen error details:', errorMsg);
+      setError(errorMsg);
+      setPhase('error');
     }
-  }, [config]);
+  }, [tokenUrl, language]);
 
-  // Disconnect avatar session
-  const disconnect = useCallback(async () => {
-    if (avatarRef.current && sessionId) {
+  const endSession = useCallback(async () => {
+    if (avatarRef.current) {
       try {
         await avatarRef.current.stopAvatar();
-        avatarRef.current = null;
-        mediaStreamRef.current = null;
-        setIsConnected(false);
-        setSessionId(null);
-        console.log("Avatar session ended");
-      } catch (err) {
-        console.error("Error disconnecting:", err);
+      } catch (e) {
+        console.warn("Failed to stop avatar cleanly", e);
       }
+      avatarRef.current = null;
     }
-  }, [sessionId]);
+    setStream(null);
+    setPhase('disconnected');
+  }, []);
 
-  // Make avatar speak text
-  const speak = useCallback(
-    async (text: string) => {
-      if (!avatarRef.current || !isConnected) {
-        throw new Error("Avatar not connected");
-      }
-
-      try {
-        await avatarRef.current.speak({
-          text,
-          taskType: TaskType.REPEAT,
-          taskMode: TaskMode.SYNC,
-        });
-      } catch (err) {
-        console.error("Error making avatar speak:", err);
-        throw err;
-      }
-    },
-    [isConnected]
-  );
-
-  // Start voice chat (for user input)
-  const startVoiceChat = useCallback(async () => {
-    if (!avatarRef.current || !isConnected) {
-      throw new Error("Avatar not connected");
-    }
-
+  const speakText = useCallback(async (text: string) => {
+    if (!avatarRef.current) return;
     try {
-      await avatarRef.current.startVoiceChat();
-      console.log("Voice chat started");
-    } catch (err) {
-      console.error("Error starting voice chat:", err);
-      throw err;
-    }
-  }, [isConnected]);
-
-  // Stop voice chat
-  const stopVoiceChat = useCallback(async () => {
-    if (!avatarRef.current) {
-      return;
-    }
-
-    try {
-      await avatarRef.current.closeVoiceChat();
-      console.log("Voice chat stopped");
-    } catch (err) {
-      console.error("Error stopping voice chat:", err);
+      await avatarRef.current.speak({ text, task_type: TaskType.REPEAT });
+    } catch (e) {
+      console.error("Speak failed", e);
     }
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (avatarRef.current && sessionId) {
-        avatarRef.current.stopAvatar().catch(console.error);
-      }
+      endSession();
     };
-  }, [sessionId]);
+  }, []);
 
   return {
-    isConnected,
-    isLoading,
-    isSpeaking,
+    stream,
+    phase,
     error,
-    sessionId,
-    mediaStream: mediaStreamRef.current,
-    connect,
-    disconnect,
-    speak,
-    startVoiceChat,
-    stopVoiceChat,
+    debug,
+    isAvatarSpeaking,
+    startSession,
+    endSession,
+    speakText,
+    avatarRef
   };
 }

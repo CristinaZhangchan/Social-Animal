@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useTheme } from "next-themes";
+import { jsPDF } from "jspdf";
+import { buildTransitionHref } from "@/lib/navigation";
+import Logo from "@/components/Logo";
+import SceneTransition from "@/components/SceneTransition";
+
+const MIN_FEEDBACK_TRANSITION_MS = 3000;
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 interface SpeakEvent {
   type: "avatar" | "user";
@@ -13,23 +21,10 @@ interface SpeakEvent {
 
 interface SessionData {
   scenario: string;
-  sessionId?: string; // LiveAvatar session ID for fetching transcript from API
+  sessionId?: string;
   transcript: Array<{ speaker: string; text: string }>;
   speakEvents?: SpeakEvent[];
   duration: number;
-}
-
-interface RhythmMetrics {
-  interruptionCount: number;
-  avgResponseLatency: number;
-}
-
-interface PracticeExercise {
-  title: string;
-  description: string;
-  duration: string;
-  targetSkill: string;
-  steps: string[];
 }
 
 interface FeedbackData {
@@ -43,26 +38,115 @@ interface FeedbackData {
     description: string;
     type: "positive" | "improvement";
   }>;
-  rhythmMetrics?: RhythmMetrics;
-  practiceExercises?: PracticeExercise[];
+  rhythmMetrics?: { interruptionCount: number; avgResponseLatency: number };
+  practiceExercises?: Array<{
+    title: string;
+    description: string;
+    duration: string;
+    targetSkill: string;
+    steps: string[];
+  }>;
 }
 
-// Download icon component
-function DownloadIcon({ className = "" }: { className?: string }) {
+// Improvement items for each cue category
+const visualCueItems = [
+  { number: 1, title: "Eye Contact", description: "Maintain consistent eye contact for 3-5 seconds at a time. Avoid staring or looking away too frequently during key points." },
+  { number: 2, title: "Facial Expression", description: "Match your facial expressions to your message. Practice genuine smiling and showing engagement through micro-expressions." },
+  { number: 3, title: "Posture", description: "Keep an open, upright posture. Avoid crossing arms or slouching, which can signal disinterest or defensiveness." },
+  { number: 4, title: "Blink Rate", description: "Keep your blinking natural and relaxed so you look attentive instead of tense or distracted during important moments." },
+  { number: 5, title: "Nodding", description: "Use subtle and occasional nodding to show understanding and engagement without breaking the flow of the interaction." },
+];
+
+const vocalCueItems = [
+  { number: 1, title: "Tone of Voice", description: "Maintain a clear, warm tone that matches your message. Avoid sounding flat or overdramatic when you want to communicate confidence." },
+  { number: 2, title: "Speech Rhythm", description: "Use a steady pace with deliberate pauses so important ideas land clearly instead of feeling rushed or monotone." },
+  { number: 3, title: "Pitch", description: "Add small variations in pitch to avoid sounding flat and to help key moments feel more expressive and memorable." },
+];
+
+const verbalCueItems = [
+  { number: 1, title: "Questions Asked", description: "Ask relevant, purposeful questions that keep the exchange moving and show real curiosity instead of filling space." },
+  { number: 2, title: "Repetition", description: "Repeat your strongest points strategically so they stick, but avoid sounding circular or repetitive." },
+];
+
+function FeedbackIcon({ kind }: { kind: "visual" | "vocal" | "verbal" }) {
+  if (kind === "visual") {
+    return (
+      <svg width="86" height="60" viewBox="0 0 86 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M43 6C24 6 8.8 17.5 2 30C8.8 42.5 24 54 43 54C62 54 77.2 42.5 84 30C77.2 17.5 62 6 43 6Z" stroke="#28020D" strokeWidth="4" />
+        <circle cx="43" cy="30" r="10" fill="#28020D" />
+      </svg>
+    );
+  }
+
+  if (kind === "vocal") {
+    return (
+      <svg width="64" height="60" viewBox="0 0 64 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 4C27.6 4 24 7.6 24 12V28C24 32.4 27.6 36 32 36C36.4 36 40 32.4 40 28V12C40 7.6 36.4 4 32 4Z" stroke="#28020D" strokeWidth="4" />
+        <path d="M14 24C14 34 22 42 32 42C42 42 50 34 50 24" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
+        <path d="M32 42V56M22 56H42" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
   return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-      />
+    <svg width="44" height="60" viewBox="0 0 44 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7 8H37" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
+      <path d="M7 22H37" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
+      <path d="M7 36H27" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
+      <path d="M7 50H21" stroke="#28020D" strokeWidth="4" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function FeedbackDetailSection({
+  kind,
+  title,
+  items,
+}: {
+  kind: "visual" | "vocal" | "verbal";
+  title: string;
+  items: Array<{ number: number; title: string; description: string }>;
+}) {
+  return (
+    <section className="sa-feedback-section-card px-8 py-10 lg:px-[72px] lg:py-[90px]">
+      <div className="grid gap-12 lg:grid-cols-[360px_1fr] lg:gap-16">
+        <div className="flex flex-col gap-8 lg:sticky lg:top-10 lg:self-start">
+          <FeedbackIcon kind={kind} />
+          <h3
+            className="text-[54px] leading-[0.92] text-[#28020d] lg:text-[90px]"
+            style={{ fontFamily: "'Fedro', 'Libre Baskerville', Georgia, serif", letterSpacing: "-1.8px" }}
+          >
+            {title.split(" ").map((word, index) => (
+              <span key={word}>
+                {index > 0 ? <br /> : null}
+                {word}
+              </span>
+            ))}
+          </h3>
+        </div>
+
+        <div>
+          {items.map((item, index) => (
+            <div key={`${title}-${item.number}`}>
+              <div className="grid gap-6 py-7 lg:grid-cols-[1fr_auto] lg:gap-10 lg:py-8">
+                <div>
+                  <p className="mb-4 font-sans text-[28px] font-semibold tracking-[-0.03em] text-[#28020d] lg:text-[48px]">
+                    {item.title}
+                  </p>
+                  <p className="font-sans text-[18px] font-medium leading-[1.45] tracking-[-0.01em] text-[#28020d] lg:text-[32px]">
+                    {item.description}
+                  </p>
+                </div>
+                <p className="font-sans text-[28px] font-light tracking-[-0.03em] text-[#28020d] lg:text-[48px]">
+                  {String(item.number).padStart(2, "0")}
+                </p>
+              </div>
+              {index < items.length - 1 ? <div className="sa-feedback-rule" /> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -70,19 +154,22 @@ export default function FeedbackPage() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { theme } = useTheme();
+  const [hasLoadedSession, setHasLoadedSession] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [previousScore] = useState(() => {
+    if (typeof window !== "undefined") {
+      const prev = localStorage.getItem("previousScore");
+      return prev ? parseInt(prev) : null;
+    }
+    return null;
+  });
 
-  // Fetch transcript from LiveAvatar API
-  const fetchTranscriptFromAPI = async (sessionId: string): Promise<Array<{ speaker: string; text: string }>> => {
+  const fetchTranscriptFromAPI = async (sessionId: string) => {
     try {
       const response = await fetch(`/api/liveavatar/transcript?session_id=${sessionId}`);
       if (response.ok) {
         const data = await response.json();
-        // Transform API response to our format
-        // API returns: { data: [{ role: "user"|"avatar", text: string, timestamp: number }] }
         if (data.data && Array.isArray(data.data)) {
           return data.data.map((entry: { role: string; text: string }) => ({
             speaker: entry.role === "user" ? "You" : "AI",
@@ -91,212 +178,118 @@ export default function FeedbackPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching transcript from API:", error);
+      console.error("Error fetching transcript:", error);
     }
     return [];
   };
 
   useEffect(() => {
     const loadSessionData = async () => {
+      const analysisStartedAt = Date.now();
       const data = localStorage.getItem("lastSession");
+
       if (data) {
         const parsed = JSON.parse(data) as SessionData;
-
-        // If we have a sessionId but transcript is empty, fetch from API
         if (parsed.sessionId && (!parsed.transcript || parsed.transcript.length === 0)) {
-          setIsLoadingTranscript(true);
           const apiTranscript = await fetchTranscriptFromAPI(parsed.sessionId);
           if (apiTranscript.length > 0) {
             parsed.transcript = apiTranscript;
-            // Update localStorage with the fetched transcript
             localStorage.setItem("lastSession", JSON.stringify(parsed));
           }
-          setIsLoadingTranscript(false);
         }
-
         setSessionData(parsed);
-        // Fetch analysis from API
-        fetchAnalysis(parsed);
+        await fetchAnalysis(parsed, analysisStartedAt);
+        setHasLoadedSession(true);
       } else {
+        setHasLoadedSession(true);
         setIsAnalyzing(false);
       }
     };
-
     loadSessionData();
     setMounted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchAnalysis = async (data: SessionData) => {
+  const fetchAnalysis = async (data: SessionData, startedAt: number) => {
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transcript: data.transcript,
           scenario: data.scenario,
           speakEvents: data.speakEvents || [],
         }),
       });
-
       if (response.ok) {
         const analysisData = await response.json();
         setFeedback(analysisData);
+        if (analysisData.overallScore) {
+          localStorage.setItem("previousScore", Math.round(analysisData.overallScore * 10).toString());
+        }
       } else {
-        // Fallback to mock data if API fails
         setFeedback(getMockFeedback());
       }
     } catch (error) {
       console.error("Error fetching analysis:", error);
-      // Fallback to mock data
       setFeedback(getMockFeedback());
     } finally {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, MIN_FEEDBACK_TRANSITION_MS - elapsed);
+
+      if (remaining > 0) {
+        await wait(remaining);
+      }
+
       setIsAnalyzing(false);
     }
   };
 
   const getMockFeedback = (): FeedbackData => ({
-    overallScore: 7.5,
+    overallScore: 7.3,
     emotionalIntelligence: 8.0,
-    clarity: 7.0,
-    pace: 7.5,
+    clarity: 6.0,
+    pace: 7.9,
     insights: [
-      {
-        icon: "🎯",
-        title: "Great Engagement",
-        description:
-          "You maintained strong engagement throughout the conversation.",
-        type: "positive",
-      },
-      {
-        icon: "⚡",
-        title: "Speech Pace",
-        description:
-          "You spoke a bit fast at times. Try to slow down to sound more confident.",
-        type: "improvement",
-      },
-      {
-        icon: "💬",
-        title: "Active Listening",
-        description: "Good use of follow-up questions to show interest.",
-        type: "positive",
-      },
+      { icon: "eye", title: "Visual Cues", description: "Good eye contact maintained throughout.", type: "positive" },
+      { icon: "mic", title: "Vocal Cues", description: "Strong vocal presence with clear articulation.", type: "positive" },
+      { icon: "chat", title: "Verbal Cues", description: "Effective use of persuasive language.", type: "positive" },
     ],
-    rhythmMetrics: {
-      interruptionCount: 0,
-      avgResponseLatency: 1.5,
-    },
-    practiceExercises: [
-      {
-        title: "The STAR Method Practice",
-        description:
-          "Based on your responses, structuring your answers using the STAR method would make them more impactful.",
-        duration: "15 minutes",
-        targetSkill: "Structured responses",
-        steps: [
-          "Write down 3 challenging situations from your experience",
-          "For each, document: Situation, Task, Action, Result",
-          "Practice saying each story out loud in under 2 minutes",
-        ],
-      },
-      {
-        title: "Mirror Confidence Exercise",
-        description:
-          "Your pacing suggested some hesitation. This exercise builds confidence.",
-        duration: "5 minutes daily",
-        targetSkill: "Confident delivery",
-        steps: [
-          "Stand in front of a mirror",
-          "Maintain eye contact with yourself while speaking",
-          "Practice your introduction with a strong, steady voice",
-        ],
-      },
-    ],
+    rhythmMetrics: { interruptionCount: 0, avgResponseLatency: 1.5 },
   });
 
-  // Download transcript as TXT
-  const downloadTranscript = () => {
-    if (!sessionData) return;
+  if (!mounted) {
+    return (
+      <main className="h-screen w-screen bg-sa-maroon p-0">
+        <SceneTransition className="min-h-screen" />
+      </main>
+    );
+  }
 
-    const header = `=== Conversation Transcript ===\n`;
-    const scenario = `Scenario: ${sessionData.scenario}\n`;
-    const date = `Date: ${new Date().toLocaleString()}\n`;
-    const separator = `${"=".repeat(40)}\n\n`;
+  // Calculate scores from analysis data
+  const overallPercent = feedback ? Math.round(feedback.overallScore * 10) : 0;
+  const visualPercent = feedback ? Math.round(feedback.emotionalIntelligence * 10) : 0;
+  const vocalPercent = feedback ? Math.round(feedback.pace * 10) : 0;
+  const verbalPercent = feedback ? Math.round(feedback.clarity * 10) : 0;
+  const prevPercent = previousScore || 0;
 
-    const transcriptText = sessionData.transcript
-      .map((entry) => `[${entry.speaker}]: ${entry.text}`)
-      .join("\n\n");
+  // Analyzing state
+  if (isAnalyzing || !hasLoadedSession) {
+    return (
+      <main className="h-screen w-screen bg-sa-maroon p-0">
+        <SceneTransition className="min-h-screen" />
+      </main>
+    );
+  }
 
-    const fullContent = header + scenario + date + separator + transcriptText;
-
-    const blob = new Blob([fullContent], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `conversation-${new Date().toISOString().split("T")[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // Download as JSON
-  const downloadAsJSON = () => {
-    if (!sessionData) return;
-
-    const exportData = {
-      scenario: sessionData.scenario,
-      transcript: sessionData.transcript,
-      exportedAt: new Date().toISOString(),
-      feedback: feedback,
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `session-data-${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  if (!mounted) return null;
-
+  // No session data state
   if (!sessionData) {
     return (
-      <main
-        className={`min-h-screen flex items-center justify-center relative overflow-hidden ${theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
-          }`}
-      >
-        {theme === "dark" && (
-          <div className="absolute top-1/4 left-0 w-96 h-96 bg-sa-accent-cyan/10 rounded-full blur-3xl" />
-        )}
-        <div
-          className={`text-center relative z-10 ${theme === "dark" ? "text-white" : "text-light-primary"
-            }`}
-        >
-          <div
-            className={`w-16 h-16 mx-auto mb-6 border-2 rounded-full flex items-center justify-center ${theme === "dark"
-              ? "border-sa-accent-cyan/50"
-              : "border-light-accent/50"
-              }`}
-          >
-            <span className="text-2xl">?</span>
-          </div>
-          <p className="text-2xl mb-4">No session data found</p>
-          <Link
-            href="/demo"
-            className={`transition-colors underline ${theme === "dark"
-              ? "text-sa-accent-cyan hover:text-white"
-              : "text-light-accent hover:text-light-primary"
-              }`}
-          >
+      <main className="min-h-screen bg-[#f5ebe2] flex items-center justify-center">
+        <div className="text-center sa-animate-fade-in">
+          <Logo collapsed size="md" color="maroon" href={undefined} className="mx-auto mb-6" />
+          <p className="text-[#28020d] text-2xl font-sans mb-4">No session data found</p>
+          <Link href={buildTransitionHref("/demo")} className="text-[#28020d]/60 hover:text-[#28020d] underline transition-colors font-sans">
             Start a new practice session
           </Link>
         </div>
@@ -304,636 +297,318 @@ export default function FeedbackPage() {
     );
   }
 
+  const feedbackSummary =
+    feedback && feedback.insights && feedback.insights.length > 0
+      ? `${feedback.insights.map((i) => i.description).join(" ")} Consistency builds lasting confidence.`
+      : "Great start, taking initiative matters. Social skills grow with practice; keep going, stay patient, and celebrate every bit of progress. Consistency builds lasting confidence.";
+
+  const feedbackSummaryPreview = (() => {
+    const normalized = feedbackSummary.replace(/\s+/g, " ").trim();
+    const sentenceMatches = normalized.match(/[^.!?]+[.!?]?/g) ?? [normalized];
+    const concise = sentenceMatches.slice(0, 2).join(" ").trim();
+    if (concise.length <= 220) {
+      return concise;
+    }
+    return `${concise.slice(0, 217).trimEnd()}...`;
+  })();
+
+  const exportFeedbackPdf = async () => {
+    if (!sessionData || !feedback || isExportingPdf) return;
+
+    setIsExportingPdf(true);
+
+    try {
+      const doc = new jsPDF({
+        orientation: "p",
+        unit: "pt",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 48;
+      const marginTop = 54;
+      const contentWidth = pageWidth - marginX * 2;
+      const bottomLimit = pageHeight - 54;
+      let cursorY = marginTop;
+
+      const ensurePageSpace = (neededHeight: number) => {
+        if (cursorY + neededHeight <= bottomLimit) return;
+        doc.addPage();
+        cursorY = marginTop;
+      };
+
+      const addWrappedText = (
+        text: string,
+        options: {
+          fontSize?: number;
+          lineHeight?: number;
+          color?: [number, number, number];
+          indent?: number;
+        } = {}
+      ) => {
+        const fontSize = options.fontSize ?? 12;
+        const lineHeight = options.lineHeight ?? fontSize * 1.45;
+        const indent = options.indent ?? 0;
+        const textWidth = contentWidth - indent;
+        const lines = doc.splitTextToSize(text, textWidth);
+
+        doc.setFontSize(fontSize);
+        if (options.color) {
+          doc.setTextColor(...options.color);
+        } else {
+          doc.setTextColor(40, 2, 13);
+        }
+
+        lines.forEach((line: string) => {
+          ensurePageSpace(lineHeight);
+          doc.text(line, marginX + indent, cursorY);
+          cursorY += lineHeight;
+        });
+      };
+
+      const addSectionTitle = (title: string) => {
+        ensurePageSpace(34);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.setTextColor(40, 2, 13);
+        doc.text(title, marginX, cursorY);
+        cursorY += 24;
+      };
+
+      const addSubTitle = (title: string) => {
+        ensurePageSpace(24);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.setTextColor(40, 2, 13);
+        doc.text(title, marginX, cursorY);
+        cursorY += 18;
+      };
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(26);
+      doc.setTextColor(40, 2, 13);
+      doc.text("Session Summary", marginX, cursorY);
+      cursorY += 30;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(92, 72, 86);
+      doc.text(`Exported ${new Date().toLocaleString()}`, marginX, cursorY);
+      cursorY += 28;
+
+      addSectionTitle("Scenario");
+      doc.setFont("helvetica", "normal");
+      addWrappedText(sessionData.scenario, { fontSize: 12 });
+      cursorY += 10;
+
+      addSectionTitle("Scores");
+      doc.setFont("helvetica", "normal");
+      addWrappedText(`Overall Final Score: ${overallPercent}%`, { fontSize: 12 });
+      addWrappedText(`Previous Score: ${prevPercent > 0 ? `${prevPercent}%` : "--"}`, { fontSize: 12 });
+      addWrappedText(`Visual Cues: ${visualPercent}%`, { fontSize: 12 });
+      addWrappedText(`Vocal Cues: ${vocalPercent}%`, { fontSize: 12 });
+      addWrappedText(`Verbal Cues: ${verbalPercent}%`, { fontSize: 12 });
+      cursorY += 10;
+
+      addSectionTitle("Summary");
+      doc.setFont("helvetica", "normal");
+      addWrappedText(feedbackSummary, {
+        fontSize: 12,
+        lineHeight: 18,
+        color: [38, 91, 56],
+      });
+      cursorY += 10;
+
+      addSectionTitle("How to Improve");
+      [
+        { title: "Visual Cues", items: visualCueItems },
+        { title: "Vocal Cues", items: vocalCueItems },
+        { title: "Verbal Cues", items: verbalCueItems },
+      ].forEach((section) => {
+        addSubTitle(section.title);
+        doc.setFont("helvetica", "normal");
+        section.items.forEach((item) => {
+          addWrappedText(`${String(item.number).padStart(2, "0")} ${item.title}`, {
+            fontSize: 12,
+            lineHeight: 18,
+          });
+          addWrappedText(item.description, {
+            fontSize: 11,
+            lineHeight: 16,
+            indent: 14,
+            color: [92, 72, 86],
+          });
+          cursorY += 8;
+        });
+        cursorY += 6;
+      });
+
+      addSectionTitle("Transcript");
+      doc.setFont("helvetica", "normal");
+      if (sessionData.transcript.length === 0) {
+        addWrappedText("No transcript available.", { fontSize: 12 });
+      } else {
+        sessionData.transcript.forEach((entry) => {
+          const speaker = entry.speaker || "Speaker";
+          addWrappedText(`[${speaker}]`, {
+            fontSize: 12,
+            lineHeight: 18,
+          });
+          addWrappedText(entry.text, {
+            fontSize: 11,
+            lineHeight: 16,
+            indent: 14,
+          });
+          cursorY += 8;
+        });
+      }
+
+      doc.save(`session-summary-${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
-    <main
-      className={`min-h-screen relative overflow-hidden ${theme === "dark" ? "bg-sa-bg-primary bg-grid" : ""
-        }`}
-    >
-      {/* Ambient glow - only in dark mode */}
-      {theme === "dark" && (
-        <>
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-sa-accent-cyan/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sa-accent-purple/10 rounded-full blur-3xl" />
-        </>
-      )}
+    <main className="min-h-screen bg-[#f5ebe2]">
+      <div className="mx-auto max-w-[1715px] px-6 py-10 lg:px-0 lg:py-16">
+        {/* Logo at top center */}
+        <div className="mb-12 flex justify-center lg:mb-16">
+          <Logo collapsed size="lg" color="maroon" href="/" />
+        </div>
 
-      <div className="container mx-auto px-4 py-8 relative z-10">
-        {/* Header */}
-        <header className="flex justify-between items-center mb-12">
-          <Link
-            href="/"
-            className={`text-2xl font-bold ${theme === "dark"
-              ? "text-white text-glow-cyan"
-              : "text-light-primary text-glow-violet"
-              }`}
+        {/* Session Summary heading + download button */}
+        <div className="mb-10 flex items-center justify-between lg:mb-12">
+          <h1 className="font-sans text-[36px] font-semibold tracking-[-1.2px] text-[#28020d] md:text-[48px] lg:text-[60px]">
+            Session Summary
+          </h1>
+          <button
+            onClick={exportFeedbackPdf}
+            disabled={isExportingPdf}
+            className="sa-icon-btn-lg shrink-0 bg-[#28020d]"
+            title="Export PDF"
           >
-            SocialAnimal
-          </Link>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <div
-              className={`flex items-center gap-2 px-4 py-2 ${theme === "dark"
-                ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer"
-                : "glass-card-sm"
-                }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                  }`}
-              />
-              <span
-                className={`text-sm font-medium ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                  }`}
-              >
-                ANALYSIS COMPLETE
-              </span>
-            </div>
-          </div>
-        </header>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 5V18.5M14 18.5L8.5 13M14 18.5L19.5 13" stroke="#F5EBE2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 22H23" stroke="#F5EBE2" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
 
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <div
-              className={`inline-block mb-4 px-4 py-1 text-sm font-medium ${theme === "dark"
-                ? "bg-sa-accent-purple/20 border border-sa-accent-purple/40 text-sa-accent-purple clip-chamfer"
-                : "glass-card-sm text-purple-500"
-                }`}
-            >
-              PERFORMANCE REPORT
-            </div>
-            <h1
-              className={`text-4xl md:text-5xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-light-primary"
-                }`}
-            >
-              Communication Scorecard
-            </h1>
-            <p
-              className={`text-lg ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                }`}
-            >
-              Here&apos;s how you did in your practice session
-            </p>
-          </div>
-
-          {isAnalyzing ? (
-            <div className="text-center py-20">
-              <div
-                className={`w-16 h-16 border-2 rounded-full animate-spin mx-auto mb-4 ${theme === "dark"
-                  ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
-                  : "border-light-accent/30 border-t-light-accent"
-                  }`}
-              />
-              <p
-                className={`text-xl ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                  }`}
-              >
-                Analyzing your conversation...
-              </p>
-            </div>
-          ) : feedback ? (
-            <>
-              {/* Overall Score */}
-              <div
-                className={`p-8 mb-8 text-center relative ${theme === "dark"
-                  ? "bg-sa-bg-secondary border border-sa-accent-cyan/30 clip-chamfer-lg"
-                  : "glass-card"
-                  }`}
-              >
-                {/* Corner decorations - dark mode only */}
-                {theme === "dark" && (
-                  <>
-                    <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-sa-accent-cyan/50" />
-                    <div className="absolute top-3 right-3 w-4 h-4 border-r-2 border-t-2 border-sa-accent-cyan/50" />
-                    <div className="absolute bottom-3 left-3 w-4 h-4 border-l-2 border-b-2 border-sa-accent-cyan/50" />
-                    <div className="absolute bottom-3 right-3 w-4 h-4 border-r-2 border-b-2 border-sa-accent-cyan/50" />
-                  </>
-                )}
-
-                <div
-                  className={`text-7xl font-bold mb-2 ${theme === "dark" ? "text-white" : "text-light-primary"
-                    }`}
-                >
-                  <span
-                    className={
-                      theme === "dark" ? "text-glow-cyan" : "text-glow-violet"
-                    }
-                  >
-                    {feedback.overallScore}
-                  </span>
-                  <span
-                    className={`text-4xl ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                      }`}
-                  >
-                    /10
-                  </span>
+        {/* Score Cards Grid */}
+        <div className="sa-stagger mb-12 grid items-start gap-4 lg:mb-20 lg:grid-cols-[650px_minmax(0,1fr)] lg:gap-[30px]">
+          <div className="rounded-[30px] bg-[#a6c3ff] px-6 py-8 lg:min-h-[410px] lg:px-6 lg:py-[38px]">
+            <div className="flex h-full flex-col justify-between">
+              <div className="flex items-start justify-between gap-6">
+                <div className="max-w-[220px]">
+                  <p className="font-sans text-[24px] font-semibold leading-[0.95] tracking-[-0.03em] text-[#2e3664]">
+                    Overall Final
+                    <br />
+                    Score
+                  </p>
                 </div>
-                <p
-                  className={`text-lg ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                    }`}
-                >
-                  Overall Performance
+                <div className="pt-1 text-right">
+                  <p className="font-sans text-[24px] font-semibold leading-[0.95] tracking-[-0.03em] text-[#c6d9ff]">
+                    Previous
+                    <br />
+                    Score
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 flex items-end justify-between gap-5">
+                <p className="sa-feedback-number text-[92px] text-[#2e3664] md:text-[140px] lg:text-[180px]">
+                  {overallPercent}%
+                </p>
+                <p className="sa-feedback-number pb-4 text-[62px] text-[#c6d9ff] md:text-[80px] lg:text-[108px]">
+                  {prevPercent > 0 ? `${prevPercent}%` : "--"}
                 </p>
               </div>
-
-              {/* Metrics Grid */}
-              <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <div className="mt-8 h-[15px] rounded-[30px] bg-[#c6d9ff]">
                 <div
-                  className={`p-6 text-center ${theme === "dark"
-                    ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                    : "glass-card"
-                    }`}
-                >
-                  <div
-                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
-                      }`}
-                  >
-                    {feedback.emotionalIntelligence}
-                  </div>
-                  <p
-                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                      }`}
-                  >
-                    Emotional Intelligence
-                  </p>
-                </div>
-                <div
-                  className={`p-6 text-center ${theme === "dark"
-                    ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                    : "glass-card"
-                    }`}
-                >
-                  <div
-                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-cyan" : "text-light-accent"
-                      }`}
-                  >
-                    {feedback.clarity}
-                  </div>
-                  <p
-                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                      }`}
-                  >
-                    Clarity
-                  </p>
-                </div>
-                <div
-                  className={`p-6 text-center ${theme === "dark"
-                    ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                    : "glass-card"
-                    }`}
-                >
-                  <div
-                    className={`text-3xl font-bold mb-1 ${theme === "dark" ? "text-sa-accent-purple" : "text-purple-500"
-                      }`}
-                  >
-                    {feedback.pace}
-                  </div>
-                  <p
-                    className={`text-sm ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                      }`}
-                  >
-                    Speech Pace
-                  </p>
-                </div>
+                  className="h-full rounded-[30px] bg-[#2e3664] transition-all duration-1000 ease-out"
+                  style={{ width: `${overallPercent}%` }}
+                />
               </div>
-
-              {/* Rhythm Metrics */}
-              {feedback.rhythmMetrics && (
-                <div className="grid md:grid-cols-2 gap-4 mb-8">
-                  <div
-                    className={`p-6 ${theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                      : "glass-card"
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className={`text-xs uppercase tracking-wider mb-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                            }`}
-                        >
-                          Interruptions
-                        </p>
-                        <div
-                          className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-light-primary"
-                            }`}
-                        >
-                          {feedback.rhythmMetrics.interruptionCount}
-                          <span
-                            className={`text-sm ml-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                              }`}
-                          >
-                            times
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${feedback.rhythmMetrics.interruptionCount > 3
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-green-500/20 text-green-400"
-                          }`}
-                      >
-                        {feedback.rhythmMetrics.interruptionCount > 3
-                          ? "!"
-                          : "✓"}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`p-6 ${theme === "dark"
-                      ? "bg-sa-bg-secondary border border-sa-accent-purple/20 clip-chamfer-lg"
-                      : "glass-card"
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className={`text-xs uppercase tracking-wider mb-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                            }`}
-                        >
-                          Avg Response Time
-                        </p>
-                        <div
-                          className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-light-primary"
-                            }`}
-                        >
-                          {feedback.rhythmMetrics.avgResponseLatency.toFixed(1)}
-                          <span
-                            className={`text-sm ml-1 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                              }`}
-                          >
-                            sec
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${feedback.rhythmMetrics.avgResponseLatency < 0.5
-                          ? "bg-yellow-500/20 text-yellow-400"
-                          : feedback.rhythmMetrics.avgResponseLatency > 4
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-green-500/20 text-green-400"
-                          }`}
-                      >
-                        {feedback.rhythmMetrics.avgResponseLatency < 0.5 ||
-                          feedback.rhythmMetrics.avgResponseLatency > 4
-                          ? "!"
-                          : "✓"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Actionable Insights */}
-              <div className="mb-8">
-                <h2
-                  className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
-                    }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                      }`}
-                  />
-                  Key Insights
-                </h2>
-                <div className="space-y-4">
-                  {feedback.insights.map((insight, index) => (
-                    <div
-                      key={index}
-                      className={`p-6 border ${theme === "dark"
-                        ? `bg-sa-bg-secondary clip-chamfer-lg ${insight.type === "positive"
-                          ? "border-green-500/30"
-                          : "border-yellow-500/30"
-                        }`
-                        : `glass-card ${insight.type === "positive"
-                          ? "border-green-500/30"
-                          : "border-yellow-500/30"
-                        }`
-                        }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="text-3xl">{insight.icon}</div>
-                        <div className="flex-1">
-                          <h3
-                            className={`text-lg font-bold mb-1 ${theme === "dark" ? "text-white" : "text-light-primary"
-                              }`}
-                          >
-                            {insight.title}
-                          </h3>
-                          <p
-                            className={`text-sm ${theme === "dark"
-                              ? "text-sa-text-secondary"
-                              : "text-light-secondary"
-                              }`}
-                          >
-                            {insight.description}
-                          </p>
-                        </div>
-                        <div
-                          className={`px-2 py-1 text-xs font-medium ${theme === "dark" ? "clip-chamfer" : "rounded-lg"
-                            } ${insight.type === "positive"
-                              ? "bg-green-500/20 text-green-400"
-                              : "bg-yellow-500/20 text-yellow-400"
-                            }`}
-                        >
-                          {insight.type === "positive" ? "Strength" : "Improve"}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Practice Exercises Section */}
-              {feedback.practiceExercises && feedback.practiceExercises.length > 0 && (
-                <div className="mb-8">
-                  <h2
-                    className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
-                      }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-purple" : "bg-purple-500"
-                        }`}
-                    />
-                    Personalized Practice Exercises
-                  </h2>
-                  <div className="space-y-4">
-                    {feedback.practiceExercises.map((exercise, index) => (
-                      <div
-                        key={index}
-                        className={`p-6 ${theme === "dark"
-                          ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                          : "glass-card"
-                          }`}
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3
-                              className={`text-lg font-bold mb-1 ${theme === "dark" ? "text-white" : "text-light-primary"
-                                }`}
-                            >
-                              {exercise.title}
-                            </h3>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span
-                                className={`flex items-center gap-1 ${theme === "dark"
-                                  ? "text-sa-accent-cyan"
-                                  : "text-light-accent"
-                                  }`}
-                              >
-                                <span>⏱️</span> {exercise.duration}
-                              </span>
-                              <span
-                                className={`flex items-center gap-1 ${theme === "dark"
-                                  ? "text-sa-accent-purple"
-                                  : "text-purple-500"
-                                  }`}
-                              >
-                                <span>🎯</span> {exercise.targetSkill}
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            className={`px-3 py-1 text-xs font-medium ${theme === "dark"
-                              ? "bg-sa-accent-purple/20 text-sa-accent-purple clip-chamfer"
-                              : "bg-purple-100 text-purple-500 rounded-lg"
-                              }`}
-                          >
-                            Exercise {index + 1}
-                          </div>
-                        </div>
-
-                        <p
-                          className={`text-sm mb-4 ${theme === "dark"
-                            ? "text-sa-text-secondary"
-                            : "text-light-secondary"
-                            }`}
-                        >
-                          {exercise.description}
-                        </p>
-
-                        <div
-                          className={`p-4 ${theme === "dark"
-                            ? "bg-sa-bg-tertiary clip-chamfer"
-                            : "bg-white/50 rounded-lg"
-                            }`}
-                        >
-                          <p
-                            className={`text-xs uppercase tracking-wider mb-2 ${theme === "dark"
-                              ? "text-sa-text-muted"
-                              : "text-light-secondary"
-                              }`}
-                          >
-                            Steps to Practice
-                          </p>
-                          <ol className="space-y-2">
-                            {exercise.steps.map((step, stepIndex) => (
-                              <li
-                                key={stepIndex}
-                                className={`flex items-start gap-3 text-sm ${theme === "dark"
-                                  ? "text-sa-text-secondary"
-                                  : "text-light-secondary"
-                                  }`}
-                              >
-                                <span
-                                  className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${theme === "dark"
-                                    ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
-                                    : "bg-light-accent/20 text-light-accent"
-                                    }`}
-                                >
-                                  {stepIndex + 1}
-                                </span>
-                                <span>{step}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Conversation Transcript Section */}
-              {sessionData && (
-                <div className="mb-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                    <h2
-                      className={`text-xl font-bold flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-light-primary"
-                        }`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${theme === "dark" ? "bg-sa-accent-cyan" : "bg-light-accent"
-                          }`}
-                      />
-                      Conversation Transcript
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => setShowTranscript(!showTranscript)}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${theme === "dark"
-                          ? "bg-sa-bg-tertiary border border-sa-accent-cyan/30 text-sa-accent-cyan hover:border-sa-accent-cyan/50 clip-chamfer"
-                          : "bg-white border border-light-accent/30 text-light-accent hover:border-light-accent/50 rounded-lg"
-                          }`}
-                      >
-                        {showTranscript ? "Hide" : "Show"} Transcript
-                      </button>
-                      <button
-                        onClick={downloadTranscript}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${theme === "dark"
-                          ? "bg-sa-bg-tertiary border border-sa-accent-purple/30 text-sa-accent-purple hover:border-sa-accent-purple/50 clip-chamfer"
-                          : "bg-white border border-purple-300 text-purple-500 hover:border-purple-400 rounded-lg"
-                          }`}
-                      >
-                        <DownloadIcon className="w-4 h-4" />
-                        TXT
-                      </button>
-                      <button
-                        onClick={downloadAsJSON}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${theme === "dark"
-                          ? "bg-sa-bg-tertiary border border-sa-text-muted/30 text-sa-text-secondary hover:border-sa-text-muted/50 clip-chamfer"
-                          : "bg-white border border-gray-300 text-gray-500 hover:border-gray-400 rounded-lg"
-                          }`}
-                      >
-                        <DownloadIcon className="w-4 h-4" />
-                        JSON
-                      </button>
-                    </div>
-                  </div>
-
-                  {showTranscript && (
-                    <div
-                      className={`p-6 max-h-96 overflow-y-auto ${theme === "dark"
-                        ? "bg-sa-bg-secondary border border-sa-accent-cyan/20 clip-chamfer-lg"
-                        : "glass-card"
-                        }`}
-                    >
-                      {isLoadingTranscript ? (
-                        <div className="flex items-center justify-center py-8">
-                          <div
-                            className={`w-8 h-8 border-2 rounded-full animate-spin ${theme === "dark"
-                              ? "border-sa-accent-cyan/30 border-t-sa-accent-cyan"
-                              : "border-light-accent/30 border-t-light-accent"
-                              }`}
-                          />
-                          <span
-                            className={`ml-3 ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                              }`}
-                          >
-                            Loading transcript...
-                          </span>
-                        </div>
-                      ) : sessionData.transcript.length === 0 ? (
-                        <div className="text-center py-8">
-                          <p
-                            className={`mb-4 ${theme === "dark" ? "text-sa-text-muted" : "text-light-secondary"
-                              }`}
-                          >
-                            No transcript available
-                          </p>
-                          {sessionData.sessionId && (
-                            <button
-                              onClick={async () => {
-                                setIsLoadingTranscript(true);
-                                const apiTranscript = await fetchTranscriptFromAPI(sessionData.sessionId!);
-                                if (apiTranscript.length > 0) {
-                                  const updatedData = { ...sessionData, transcript: apiTranscript };
-                                  setSessionData(updatedData);
-                                  localStorage.setItem("lastSession", JSON.stringify(updatedData));
-                                }
-                                setIsLoadingTranscript(false);
-                              }}
-                              className={`px-4 py-2 text-sm font-medium transition-colors ${theme === "dark"
-                                ? "bg-sa-accent-cyan/20 text-sa-accent-cyan hover:bg-sa-accent-cyan/30 clip-chamfer"
-                                : "bg-light-accent/20 text-light-accent hover:bg-light-accent/30 rounded-lg"
-                                }`}
-                            >
-                              Retry Loading Transcript
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {sessionData.transcript.map((entry, index) => (
-                            <div
-                              key={index}
-                              className={`flex gap-3 ${entry.speaker === "You" ? "flex-row-reverse" : ""
-                                }`}
-                            >
-                              <div
-                                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${entry.speaker === "You"
-                                  ? theme === "dark"
-                                    ? "bg-sa-accent-cyan/20 text-sa-accent-cyan"
-                                    : "bg-light-accent/20 text-light-accent"
-                                  : theme === "dark"
-                                    ? "bg-sa-accent-purple/20 text-sa-accent-purple"
-                                    : "bg-purple-100 text-purple-500"
-                                  }`}
-                              >
-                                {entry.speaker === "You" ? "Y" : "A"}
-                              </div>
-                              <div
-                                className={`flex-1 p-3 rounded-lg ${entry.speaker === "You"
-                                  ? theme === "dark"
-                                    ? "bg-sa-accent-cyan/10 text-sa-text-secondary"
-                                    : "bg-light-accent/10 text-light-secondary"
-                                  : theme === "dark"
-                                    ? "bg-sa-bg-tertiary text-sa-text-secondary"
-                                    : "bg-white/70 text-light-secondary"
-                                  }`}
-                              >
-                                <p className="text-sm">{entry.text}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/demo"
-                  className={`px-8 py-4 font-bold transition-all text-center ${theme === "dark"
-                    ? "bg-sa-accent-cyan text-sa-bg-primary hover:shadow-neon-cyan-strong clip-chamfer"
-                    : "btn-light-primary rounded-xl"
-                    }`}
-                >
-                  Try Again
-                </Link>
-                <Link
-                  href="/"
-                  className={`px-8 py-4 font-semibold transition-all text-center ${theme === "dark"
-                    ? "bg-sa-bg-secondary border border-sa-text-muted/30 text-white hover:border-sa-text-muted/50 clip-chamfer"
-                    : "bg-white border border-gray-300 text-light-primary hover:border-gray-400 rounded-xl"
-                    }`}
-                >
-                  Back to Home
-                </Link>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-20">
-              <p
-                className={`text-xl ${theme === "dark" ? "text-sa-text-secondary" : "text-light-secondary"
-                  }`}
-              >
-                Failed to analyze conversation
-              </p>
-              <Link
-                href="/demo"
-                className={`inline-block mt-4 transition-colors ${theme === "dark"
-                  ? "text-sa-accent-cyan hover:text-white"
-                  : "text-light-accent hover:text-light-primary"
-                  }`}
-              >
-                Try again
-              </Link>
             </div>
-          )}
+          </div>
+
+          <div className="grid gap-4 lg:gap-[30px]">
+            <div className="grid gap-4 md:grid-cols-3 lg:gap-[30px]">
+              {[
+                { label: "Visual Cues", value: visualPercent },
+                { label: "Vocal Cues", value: vocalPercent },
+                { label: "Verbal Cues", value: verbalPercent },
+              ].map((item) => (
+                <div key={item.label} className="rounded-[30px] bg-[#efc5ec] px-6 py-6 lg:min-h-[190px] lg:px-5 lg:py-8">
+                  <p className="mb-5 font-sans text-[22px] font-semibold tracking-[-0.03em] text-[#644b62]">
+                    {item.label}
+                  </p>
+                  <p className="sa-feedback-number text-[64px] text-[#644b62] md:text-[80px] lg:text-[110px]">
+                    {item.value}%
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[30px] bg-[#cde0b4] px-6 py-7 lg:min-h-[190px] lg:px-8 lg:py-9">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <p className="font-sans text-[15px] font-semibold uppercase tracking-[0.14em] text-[#265b38]/70">
+                  Feedback Summary
+                </p>
+                <p className="font-sans text-[13px] font-medium text-[#265b38]/60">
+                  Quick read
+                </p>
+              </div>
+              <p className="max-w-[920px] font-sans text-[22px] font-medium italic leading-[1.32] tracking-[-0.01em] text-[#265b38] lg:text-[28px]">
+                {feedbackSummaryPreview}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* How to Improve Section */}
+        <div className="mb-8 flex items-center justify-between gap-4 lg:mb-12">
+          <h2 className="font-sans text-[36px] font-semibold tracking-[-1.2px] text-[#28020d] md:text-[48px] lg:text-[60px]">
+            How to Improve
+          </h2>
+          <button className="sa-icon-btn-lg shrink-0 bg-[#28020d]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 7V17M7 12L12 17L17 12" stroke="#F5EBE2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mb-12 flex flex-col gap-5 lg:mb-20">
+          <FeedbackDetailSection kind="visual" title="Visual Cues" items={visualCueItems} />
+          <FeedbackDetailSection kind="vocal" title="Vocal Cues" items={vocalCueItems} />
+          <FeedbackDetailSection kind="verbal" title="Verbal Cues" items={verbalCueItems} />
+        </div>
+
+        {/* Bottom Action Buttons */}
+        <div className="flex flex-col items-center justify-center gap-5 pb-12 sm:flex-row">
+          <button
+            onClick={exportFeedbackPdf}
+            disabled={isExportingPdf}
+            className="flex h-[120px] w-full items-center justify-center gap-3 rounded-[61.765px] bg-[#28020d] px-10 text-[24px] font-medium text-[#f5ebe2] transition-transform hover:scale-[1.02] disabled:opacity-60 sm:w-[265.5px] lg:text-[31px]"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4V16M12 16L7 11M12 16L17 11" stroke="#F5EBE2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M4 20H20" stroke="#F5EBE2" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            {isExportingPdf ? "Exporting..." : "Download PDF"}
+          </button>
+          <Link
+            href={buildTransitionHref("/demo")}
+            className="flex h-[120px] w-full items-center justify-center gap-3 rounded-[61.765px] bg-[#28020d] px-10 text-[24px] font-medium text-[#f5ebe2] transition-transform hover:scale-[1.02] sm:w-[261px] lg:text-[31px]"
+          >
+            Try Again
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M4 12H20M20 12L14 6M20 12L14 18" stroke="#F5EBE2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
         </div>
       </div>
     </main>

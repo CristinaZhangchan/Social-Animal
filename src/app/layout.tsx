@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "SocialAnimal - AI-Powered Social Practice",
@@ -14,9 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className="antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );

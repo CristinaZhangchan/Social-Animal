@@ -17,7 +17,7 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // shadcn/ui color system (from CharmUp)
+        // shadcn/ui compatibility
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -43,11 +43,6 @@ const config: Config = {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))'
         },
-        warm: {
-          DEFAULT: 'hsl(var(--warm))',
-          foreground: 'hsl(var(--warm-foreground))',
-          muted: 'hsl(var(--warm-muted))'
-        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))'
@@ -56,167 +51,76 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        // SocialAnimal Brand Colors - Dark Sci-Fi Theme (preserved)
+        // SocialAnimal Warm Theme
         sa: {
-          bg: {
-            primary: "#0a0a0f",
-            secondary: "#12121a",
-            tertiary: "#1a1a24",
-          },
-          accent: {
-            cyan: "#00d4ff",
-            purple: "#a855f7",
-            magenta: "#ff00ff",
-          },
-          text: {
-            primary: "#ffffff",
-            secondary: "#94a3b8",
-            muted: "#64748b",
-          },
+          maroon: '#28020D',
+          cream: '#F5EBE2',
+          'cream-dark': '#F8DFC9',
+          gold: '#C8AD93',
+          'gold-muted': '#987C63',
+          'gold-light': '#EDD7C6',
+          'gold-dark': '#A7988A',
+          divider: '#CFB49E',
+          surface: '#D1C0B4',
+          // Score colors
+          'score-blue': '#A6C3FF',
+          'score-blue-dark': '#2E3664',
+          'score-blue-light': '#C6D9FF',
+          'score-pink': '#EFC5EC',
+          'score-pink-dark': '#644B62',
+          'score-green': '#CDE0B4',
+          'score-green-dark': '#265B38',
         },
-        // SocialAnimal Light Theme - Nordic Sunrise (preserved)
-        "sa-light": {
-          bg: {
-            start: "#FDE68A",
-            middle: "#FBCFE8",
-            end: "#E9D5FF",
-          },
-          surface: "rgba(255, 255, 255, 0.6)",
-          text: {
-            primary: "#1F2937",
-            secondary: "#6B7280",
-          },
-          accent: "#8B5CF6",
-          border: "rgba(255, 255, 255, 0.8)",
-        },
-      },
-      backgroundImage: {
-        // CharmUp gradients
-        'gradient-hero': 'var(--gradient-hero)',
-        'gradient-accent': 'var(--gradient-accent)',
-        'gradient-card': 'var(--gradient-card)',
-        'gradient-mesh': 'var(--gradient-mesh)',
-        // SocialAnimal gradients (preserved)
-        "sa-grid":
-          "linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px)",
-        "sa-glow-cyan":
-          "radial-gradient(ellipse at center, rgba(0,212,255,0.15) 0%, transparent 70%)",
-        "sa-glow-purple":
-          "radial-gradient(ellipse at center, rgba(168,85,247,0.15) 0%, transparent 70%)",
-      },
-      backgroundSize: {
-        "grid-pattern": "40px 40px",
-        "gradient-flow": "200% 100%",
-      },
-      boxShadow: {
-        // CharmUp shadows
-        soft: 'var(--shadow-soft)',
-        glow: 'var(--shadow-glow)',
-        elevated: 'var(--shadow-elevated)',
-        '2xs': 'var(--shadow-2xs)',
-        xs: 'var(--shadow-xs)',
-        sm: 'var(--shadow-sm)',
-        md: 'var(--shadow-md)',
-        lg: 'var(--shadow-lg)',
-        xl: 'var(--shadow-xl)',
-        '2xl': 'var(--shadow-2xl)',
-        // SocialAnimal shadows (preserved)
-        "neon-cyan":
-          "0 0 20px rgba(0,212,255,0.3), 0 0 40px rgba(0,212,255,0.1)",
-        "neon-purple":
-          "0 0 20px rgba(168,85,247,0.3), 0 0 40px rgba(168,85,247,0.1)",
-        "neon-cyan-strong":
-          "0 0 30px rgba(0,212,255,0.5), 0 0 60px rgba(0,212,255,0.2)",
-        glass: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-        "glass-strong": "0 15px 35px -5px rgba(0, 0, 0, 0.15)",
-        "accent-violet": "0 4px 14px 0 rgba(124, 58, 237, 0.3)",
-        "accent-violet-strong": "0 6px 20px 0 rgba(124, 58, 237, 0.4)",
       },
       fontFamily: {
-        sans: [
-          'DM Sans',
-          'ui-sans-serif',
-          'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
-          'sans-serif'
-        ],
-        serif: [
-          'Source Serif Pro',
-          'ui-serif',
-          'Georgia',
-          'Cambria',
-          'Times New Roman',
-          'Times',
-          'serif'
-        ],
-        mono: [
-          'JetBrains Mono',
-          'ui-monospace',
-          'SFMono-Regular',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          'Liberation Mono',
-          'Courier New',
-          'monospace'
-        ]
+        sans: ['Figtree', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['Libre Baskerville', 'Georgia', 'serif'],
+        heading: ['Libre Baskerville', 'Georgia', 'serif'],
+        display: ['Libre Baskerville', 'Georgia', 'serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
-        "2xl": "16px",
-        "3xl": "24px",
+        '2xl': '16px',
+        '3xl': '24px',
+        '4xl': '30px',
+        '5xl': '45px',
+        'pill': '75px',
+        'full-pill': '43.75px',
       },
       animation: {
-        // shadcn/ui animations
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        // SocialAnimal animations (preserved)
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        "border-glow": "border-glow 2s ease-in-out infinite",
-        "scan-line": "scan-line 3s linear infinite",
-        "gradient-flow": "gradient-flow 2s linear infinite",
+        'fade-in': 'sa-fade-in 0.6s ease-out forwards',
+        'scale-in': 'sa-scale-in 0.4s ease-out forwards',
+        'pulse-soft': 'sa-pulse-soft 2s ease-in-out infinite',
+        'spin-slow': 'sa-spin-slow 8s linear infinite',
       },
       keyframes: {
-        // shadcn/ui keyframes
         'accordion-down': {
-          from: {
-            height: '0'
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)'
-          }
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' }
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)'
-          },
-          to: {
-            height: '0'
-          }
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' }
         },
-        // SocialAnimal keyframes (preserved)
-        "pulse-glow": {
-          "0%, 100%": { opacity: "0.5" },
-          "50%": { opacity: "1" },
+        'sa-fade-in': {
+          from: { opacity: '0', transform: 'translateY(20px)' },
+          to: { opacity: '1', transform: 'translateY(0)' }
         },
-        "border-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(0,212,255,0.3)" },
-          "50%": { boxShadow: "0 0 30px rgba(0,212,255,0.6)" },
+        'sa-scale-in': {
+          from: { opacity: '0', transform: 'scale(0.95)' },
+          to: { opacity: '1', transform: 'scale(1)' }
         },
-        "scan-line": {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(100%)" },
+        'sa-pulse-soft': {
+          '0%, 100%': { opacity: '0.8' },
+          '50%': { opacity: '1' }
         },
-        "gradient-flow": {
-          "0%": { backgroundPosition: "0% 50%" },
-          "100%": { backgroundPosition: "200% 50%" },
+        'sa-spin-slow': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' }
         },
       },
     },
@@ -225,4 +129,3 @@ const config: Config = {
 };
 
 export default config;
-

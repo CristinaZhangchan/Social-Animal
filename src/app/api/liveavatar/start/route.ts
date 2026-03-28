@@ -40,8 +40,12 @@ export async function POST(req: Request) {
         errorData = { message: errorText };
       }
       console.error("LiveAvatar start API error:", errorData);
+      const message =
+        (typeof errorData?.message === "string" && errorData.message) ||
+        (typeof errorData?.error === "string" && errorData.error) ||
+        "Failed to start session";
       return NextResponse.json(
-        { error: "Failed to start session", details: errorData },
+        { error: message, details: errorData },
         { status: response.status }
       );
     }

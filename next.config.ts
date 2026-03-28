@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.heygen.ai",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

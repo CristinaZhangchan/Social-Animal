@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, X, Gift, Sparkles, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { buildTransitionHref, pushWithTransition } from "@/lib/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Header } from "@/components/Header";
 
@@ -91,7 +92,7 @@ export default function PricingPage() {
                             <Button
                                 variant="outline"
                                 className="w-full rounded-full py-6"
-                                onClick={() => router.push("/demo")}
+                                onClick={() => pushWithTransition(router, "/demo")}
                             >
                                 Start Free
                             </Button>
@@ -175,7 +176,7 @@ export default function PricingPage() {
             {/* Footer */}
             <footer className="relative z-10 container mx-auto px-4 py-12 border-t border-border/50">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <Link href="/" className="text-xl font-bold text-primary">
+                    <Link href={buildTransitionHref("/")} className="text-xl font-bold text-primary">
                         Social Animal
                     </Link>
                     <p className="text-sm text-muted-foreground">

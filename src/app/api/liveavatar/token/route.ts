@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  DEFAULT_SANDBOX_AVATAR_ID,
+  getLiveAvatarRuntimeConfig,
+} from "@/lib/liveavatar/config";
 
 /**
  * POST /api/liveavatar/token
@@ -11,8 +15,8 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.LIVEAVATAR_API_KEY;
-    if (!apiKey) {
+    const config = getLiveAvatarRuntimeConfig();
+    if (!config.apiKey) {
       return NextResponse.json(
         { error: "LiveAvatar API key not configured" },
         { status: 500 }
@@ -20,21 +24,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const isSandbox = process.env.LIVEAVATAR_SANDBOX_MODE === "true";
-    const sandboxAvatarId = process.env.LIVEAVATAR_SANDBOX_AVATAR_ID;
-
-    // Determine Avatar ID
-    // If provider is heygen, we trust the avatar_id passed (bypass sandbox override if specifically requested)
-    // Or if allowing sandbox bypass generally
     let avatarId = body.avatar_id;
 
     if (!avatarId) {
-      // Fallback to sandbox ID if no ID provided
-      avatarId = sandboxAvatarId || "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a";
-    } else if (isSandbox && body.provider !== 'heygen') {
-      // If in sandbox mode AND NOT explicitly using a specific provider like heygen, override with sandbox ID
-      // This keeps dev safe but allows HeyGen integration to work
-      avatarId = sandboxAvatarId || "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a";
+      avatarId = config.sandboxEnabled
+        ? config.sandboxAvatarId
+        : config.sandboxAvatarId || DEFAULT_SANDBOX_AVATAR_ID;
+    } else if (config.sandboxEnabled && body.provider !== "heygen") {
+      avatarId = config.sandboxAvatarId || DEFAULT_SANDBOX_AVATAR_ID;
     }
 
     if (!avatarId) {
@@ -44,12 +41,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build the request payload for LiveAvatar FULL mode
     const payload: Record<string, unknown> = {
       mode: "FULL",
       avatar_id: avatarId,
-      is_sandbox: isSandbox && body.provider !== 'heygen', // Disable sandbox flag if using heygen provider? Or keep it? 
-      // If we are using a real HeyGen ID, we probably shouldn't send is_sandbox=true if that forces the default avatar on their end.
+      is_sandbox: config.sandboxEnabled && body.provider !== "heygen",
     };
 
     // Attach avatar_persona if voice or context provided
@@ -61,7 +56,6 @@ export async function POST(req: Request) {
       };
     }
 
-    // Pass provider if needed (unclear if LiveAvatar API supports this field directly, but assumes it might for routing)
     if (body.provider) {
       payload.provider = body.provider;
     }
@@ -72,7 +66,7 @@ export async function POST(req: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-API-KEY": apiKey,
+          "X-API-KEY": config.apiKey,
           Accept: "application/json",
         },
         body: JSON.stringify(payload),
@@ -88,8 +82,12 @@ export async function POST(req: Request) {
         errorData = { message: errorText };
       }
       console.error("LiveAvatar token API error:", errorData);
+      const message =
+        (typeof errorData?.message === "string" && errorData.message) ||
+        (typeof errorData?.error === "string" && errorData.error) ||
+        "Failed to create session token";
       return NextResponse.json(
-        { error: "Failed to create session token", details: errorData },
+        { error: message, details: errorData },
         { status: response.status }
       );
     }

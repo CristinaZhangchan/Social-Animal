@@ -319,7 +319,11 @@ export function useLiveAvatar() {
 
         if (!tokenRes.ok) {
           const errData = await tokenRes.json().catch(() => ({}));
-          throw new Error(errData.error || "Failed to create session token");
+          throw new Error(
+            errData?.details?.message ||
+              errData?.error ||
+              "Failed to create session token"
+          );
         }
 
         const tokenData = await tokenRes.json();
@@ -338,7 +342,11 @@ export function useLiveAvatar() {
 
         if (!startRes.ok) {
           const errData = await startRes.json().catch(() => ({}));
-          throw new Error(errData.error || "Failed to start session");
+          throw new Error(
+            errData?.details?.message ||
+              errData?.error ||
+              "Failed to start session"
+          );
         }
 
         const startData = await startRes.json();

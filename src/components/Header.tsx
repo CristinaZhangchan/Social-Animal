@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { pushWithTransition } from "@/lib/navigation";
+import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +23,7 @@ export function Header() {
 
     const handleSignOut = async () => {
         await signOut();
-        router.push("/");
+        pushWithTransition(router, "/");
     };
 
     const getUserInitials = () => {
@@ -33,9 +34,7 @@ export function Header() {
     return (
         <nav className="relative z-10 container mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
-                <Link href={user ? "/home" : "/"} className="text-2xl font-bold text-primary">
-                    Social Animal
-                </Link>
+                <Logo href={user ? "/home" : "/"} size="md" className="gap-2" />
                 <div className="flex items-center gap-4">
                     <ThemeToggle />
 
@@ -43,7 +42,7 @@ export function Header() {
                         <div className="flex items-center gap-4">
                             <Button
                                 variant="ghost"
-                                onClick={() => router.push("/pricing")}
+                                onClick={() => pushWithTransition(router, "/pricing")}
                                 className="text-muted-foreground hover:text-foreground font-medium hidden sm:inline-flex"
                             >
                                 Pricing
@@ -79,7 +78,7 @@ export function Header() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             <Button
-                                onClick={() => router.push("/demo")}
+                                onClick={() => pushWithTransition(router, "/demo")}
                                 className="bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-full px-6"
                             >
                                 Practice
@@ -89,20 +88,20 @@ export function Header() {
                         <>
                             <Button
                                 variant="ghost"
-                                onClick={() => router.push("/pricing")}
+                                onClick={() => pushWithTransition(router, "/pricing")}
                                 className="text-muted-foreground hover:text-foreground font-medium hidden sm:inline-flex"
                             >
                                 Pricing
                             </Button>
                             <Button
                                 variant="ghost"
-                                onClick={() => router.push("/auth")}
+                                onClick={() => pushWithTransition(router, "/auth")}
                                 className="text-muted-foreground hover:text-foreground font-medium"
                             >
                                 Log in
                             </Button>
                             <Button
-                                onClick={() => router.push("/demo")}
+                                onClick={() => pushWithTransition(router, "/demo")}
                                 className="bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-full px-6"
                             >
                                 Get Started

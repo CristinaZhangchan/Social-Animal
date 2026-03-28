@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { pushWithTransition } from "@/lib/navigation";
 import { Home, Zap, TrendingUp, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,7 @@ export default function BottomTabBar() {
                     return (
                         <button
                             key={item.id}
-                            onClick={() => router.push(item.path)}
+                            onClick={() => pushWithTransition(router, item.path)}
                             className={cn(
                                 "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 min-w-[70px]",
                                 isActive && !isPricing && "bg-primary text-primary-foreground shadow-sm",

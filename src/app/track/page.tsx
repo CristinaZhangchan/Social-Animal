@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { pushWithTransition } from "@/lib/navigation";
 import AppLayout from "@/components/AppLayout";
 import { cn } from "@/lib/utils";
 import {
@@ -129,7 +130,7 @@ export default function TrackPage() {
                     <div className="p-6 text-center py-12">
                         <p className="text-muted-foreground mb-4">Complete a few sessions to see how you&apos;re doing</p>
                         <button
-                            onClick={() => router.push("/demo")}
+                            onClick={() => pushWithTransition(router, "/demo")}
                             className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl font-medium hover:opacity-90 transition"
                         >
                             Start Practicing
@@ -282,7 +283,7 @@ export default function TrackPage() {
                     <div className="p-6 text-center py-12">
                         <p className="text-muted-foreground mb-4">No sessions yet. Start practicing!</p>
                         <button
-                            onClick={() => router.push("/demo")}
+                            onClick={() => pushWithTransition(router, "/demo")}
                             className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition"
                         >
                             Start a Session

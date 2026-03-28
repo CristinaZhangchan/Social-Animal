@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Use OpenAI TTS (simpler alternative to ElevenLabs for MVP)
-    const mp3 = await openai.audio.speech.create({
+    const mp3 = await getOpenAI().audio.speech.create({
       model: "tts-1",
       voice: "nova", // Natural, friendly voice
       input: text,

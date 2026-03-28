@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { pushWithTransition } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
@@ -25,7 +26,7 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
 
     const handleSignOut = async () => {
         await signOut();
-        router.push("/");
+        pushWithTransition(router, "/");
     };
 
     const navItems = [
@@ -74,7 +75,7 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
                     return (
                         <button
                             key={item.id}
-                            onClick={() => router.push(item.path)}
+                            onClick={() => pushWithTransition(router, item.path)}
                             className={cn(
                                 "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200",
                                 collapsed ? "justify-center" : "justify-start",
@@ -96,7 +97,7 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
             {/* Upgrade & Sign out */}
             <div className="p-2 border-t border-border/30 space-y-1">
                 <button
-                    onClick={() => router.push("/pricing")}
+                    onClick={() => pushWithTransition(router, "/pricing")}
                     className={cn(
                         "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
                         collapsed ? "justify-center" : "justify-start",

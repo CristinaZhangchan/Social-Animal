@@ -15,7 +15,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User as UserIcon, Settings } from "lucide-react";
+import { LogOut, User as UserIcon, Settings, TrendingUp } from "lucide-react";
 
 export function Header() {
     const router = useRouter();
@@ -65,12 +65,11 @@ export function Header() {
                                             </p>
                                         </div>
                                     </DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => pushWithTransition(router, "/track")}>
+                                        <TrendingUp className="mr-2 h-4 w-4" />
+                                        <span>Track Progress</span>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    {/* Could add Profile page link here later */}
-                                    {/* <DropdownMenuItem onClick={() => router.push("/profile")}>
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem> */}
                                     <DropdownMenuItem onClick={handleSignOut}>
                                         <LogOut className="mr-2 h-4 w-4" />
                                         <span>Log out</span>

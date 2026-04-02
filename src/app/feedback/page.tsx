@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 import { buildTransitionHref } from "@/lib/navigation";
 import Logo from "@/components/Logo";
 import SceneTransition from "@/components/SceneTransition";
+import { updateSessionScore } from "@/lib/supabase/chatHistory";
 
 const MIN_FEEDBACK_TRANSITION_MS = 3000;
 
@@ -22,6 +23,7 @@ interface SpeakEvent {
 interface SessionData {
   scenario: string;
   sessionId?: string;
+  dbSessionId?: string; // <--- Add this
   transcript: Array<{ speaker: string; text: string }>;
   speakEvents?: SpeakEvent[];
   duration: number;
@@ -225,7 +227,16 @@ export default function FeedbackPage() {
         const analysisData = await response.json();
         setFeedback(analysisData);
         if (analysisData.overallScore) {
-          localStorage.setItem("previousScore", Math.round(analysisData.overallScore * 10).toString());
+          const score = Math.round(analysisData.overallScore * 10);
+          localStorage.setItem("previousScore", score.toString());
+
+          // Update Supabase if we have a DB session ID
+          if (data.dbSessionId) {
+            console.log('[Feedback] Updating DB session score:', data.dbSessionId, score);
+            updateSessionScore(data.dbSessionId, score).catch(err =>
+              console.error('[Feedback] Failed to update DB score:', err)
+            );
+          }
         }
       } else {
         setFeedback(getMockFeedback());

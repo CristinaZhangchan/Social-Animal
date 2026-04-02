@@ -6,6 +6,8 @@ import { pushWithTransition } from "@/lib/navigation";
 import { useLiveAvatar, type SessionPhase } from "@/hooks/useLiveAvatar";
 import { useHeyGenAvatar } from "@/hooks/useHeyGenAvatar";
 import { useHeyGenTalkingPhoto, type TalkingPhotoPhase } from "@/hooks/useHeyGenTalkingPhoto";
+import { useAuth } from "@/hooks/useAuth";
+import { saveSession } from "@/lib/supabase/chatHistory";
 import Logo from "@/components/Logo";
 import SceneTransition from "@/components/SceneTransition";
 
@@ -58,23 +60,22 @@ function ControlBar({
       {/* Mic Button */}
       <button
         onClick={onToggleMic}
-        className={`sa-icon-btn-lg ${
-          isMicEnabled
-            ? 'bg-sa-gold hover:bg-sa-gold-muted'
-            : 'bg-sa-maroon hover:bg-sa-maroon/80'
-        }`}
+        className={`sa-icon-btn-lg ${isMicEnabled
+          ? 'bg-sa-gold hover:bg-sa-gold-muted'
+          : 'bg-sa-maroon hover:bg-sa-maroon/80'
+          }`}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           {isMicEnabled ? (
             <>
-              <rect x="9" y="2" width="6" height="12" rx="3" fill={isMicEnabled ? '#28020D' : '#F5EBE2'}/>
-              <path d="M5 10C5 13.866 8.134 17 12 17C15.866 17 19 13.866 19 10" stroke={isMicEnabled ? '#28020D' : '#F5EBE2'} strokeWidth="2" strokeLinecap="round"/>
-              <path d="M12 17V21M8 21H16" stroke={isMicEnabled ? '#28020D' : '#F5EBE2'} strokeWidth="2" strokeLinecap="round"/>
+              <rect x="9" y="2" width="6" height="12" rx="3" fill={isMicEnabled ? '#28020D' : '#F5EBE2'} />
+              <path d="M5 10C5 13.866 8.134 17 12 17C15.866 17 19 13.866 19 10" stroke={isMicEnabled ? '#28020D' : '#F5EBE2'} strokeWidth="2" strokeLinecap="round" />
+              <path d="M12 17V21M8 21H16" stroke={isMicEnabled ? '#28020D' : '#F5EBE2'} strokeWidth="2" strokeLinecap="round" />
             </>
           ) : (
             <>
-              <rect x="9" y="2" width="6" height="12" rx="3" fill="#F5EBE2" opacity="0.5"/>
-              <path d="M3 3L21 21" stroke="#F5EBE2" strokeWidth="2" strokeLinecap="round"/>
+              <rect x="9" y="2" width="6" height="12" rx="3" fill="#F5EBE2" opacity="0.5" />
+              <path d="M3 3L21 21" stroke="#F5EBE2" strokeWidth="2" strokeLinecap="round" />
             </>
           )}
         </svg>
@@ -91,12 +92,11 @@ function ControlBar({
       {/* Transcript Toggle Button */}
       <button
         onClick={onToggleTranscript}
-        className={`sa-icon-btn-lg ${
-          showTranscript ? 'bg-sa-maroon' : 'bg-sa-gold hover:bg-sa-gold-muted'
-        }`}
+        className={`sa-icon-btn-lg ${showTranscript ? 'bg-sa-maroon' : 'bg-sa-gold hover:bg-sa-gold-muted'
+          }`}
       >
         <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
-          <path d="M2 2H20M2 6H16M2 10H20M2 14H12" stroke={showTranscript ? '#F5EBE2' : '#28020D'} strokeWidth="2" strokeLinecap="round"/>
+          <path d="M2 2H20M2 6H16M2 10H20M2 14H12" stroke={showTranscript ? '#F5EBE2' : '#28020D'} strokeWidth="2" strokeLinecap="round" />
         </svg>
       </button>
     </div>
@@ -163,6 +163,7 @@ function LiveAvatarSession({
   onBack,
 }: any) {
   const router = useRouter();
+  const { user } = useAuth();
   const {
     phase, error, sessionId, isAvatarSpeaking, isUserSpeaking,
     transcript, speakEvents, avatarVideoTrack, audioContainerRef,
@@ -225,14 +226,53 @@ function LiveAvatarSession({
   }, [customPrompt, selectedLanguage, startSession, avatarIdParam, voiceIdParam, onBack]);
 
   const handleEndSession = useCallback(async () => {
+    const mappedTranscript = transcript.map(t => ({ speaker: t.speaker === "user" ? "You" : "AI", text: t.text }));
+    const durationSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+
+    console.log('[LiveAvatarSession] Ending session...', {
+      customPrompt, durationSeconds,
+      transcriptCount: mappedTranscript.length,
+      userId: user?.id
+    });
+
     localStorage.setItem("lastSession", JSON.stringify({
       scenario: customPrompt, sessionId,
-      transcript: transcript.map(t => ({ speaker: t.speaker === "user" ? "You" : "AI", text: t.text })),
+      transcript: mappedTranscript,
       speakEvents, duration: Date.now()
     }));
+
+    // Save to Supabase if logged in
+    if (user?.id) {
+      console.log('[LiveAvatarSession] Saving to Supabase...');
+      try {
+        const { sessionId: dbId, error } = await saveSession(user.id, {
+          scenario: customPrompt,
+          avatarName: avatarNameParam || undefined,
+          durationSeconds,
+          transcript: mappedTranscript.map(t => ({ speaker: t.speaker, text: t.text })),
+        });
+        if (error) {
+          console.error('[LiveAvatarSession] Database save error:', error);
+        } else if (dbId) {
+          console.log('[LiveAvatarSession] Successfully saved session to DB:', dbId);
+          // Update localStorage with the DB session ID for feedback page to use
+          localStorage.setItem("lastSession", JSON.stringify({
+            scenario: customPrompt, sessionId,
+            dbSessionId: dbId, // <--- Add this
+            transcript: mappedTranscript,
+            speakEvents, duration: Date.now()
+          }));
+        }
+      } catch (err) {
+        console.error('[LiveAvatarSession] Unexpected error saving to DB:', err);
+      }
+    } else {
+      console.warn('[LiveAvatarSession] User not logged in, skipping database save.');
+    }
+
     await stopSession();
     router.push("/feedback");
-  }, [stopSession, customPrompt, sessionId, transcript, speakEvents, router]);
+  }, [stopSession, customPrompt, sessionId, transcript, speakEvents, router, user, startTime, avatarNameParam]);
 
   const isLoading = phase === "creating_token" || phase === "starting" || phase === "connecting";
   const isConnected = phase === "connected";
@@ -362,7 +402,7 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
       {isConnected && (
         <ControlBar
           isMicEnabled={true}
-          onToggleMic={() => {}}
+          onToggleMic={() => { }}
           onEndSession={handleEndSession}
           onToggleTranscript={() => setShowTranscript(!showTranscript)}
           showTranscript={showTranscript}
@@ -376,6 +416,7 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
 
 function TalkingPhotoSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPreviewUrlParam, onBack }: any) {
   const router = useRouter();
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [userInput, setUserInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -388,7 +429,7 @@ function TalkingPhotoSession({ customPrompt, selectedLanguage, avatarIdParam, av
   useEffect(() => {
     if (currentVideoUrl && videoRef.current) {
       videoRef.current.src = currentVideoUrl;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   }, [currentVideoUrl]);
 
@@ -415,7 +456,56 @@ function TalkingPhotoSession({ customPrompt, selectedLanguage, avatarIdParam, av
     } catch (e) { setIsThinking(false); console.error('Chat error:', e); }
   };
 
-  const handleEndSession = () => { reset(); router.push('/feedback'); };
+  const handleEndSession = async () => {
+    const durationSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+    const mappedTranscript = messages.map((m: any) => ({
+      speaker: m.role === 'user' ? 'You' : 'AI',
+      text: m.content,
+    }));
+
+    console.log('[TalkingPhotoSession] Ending session...', {
+      customPrompt, durationSeconds,
+      messagesCount: mappedTranscript.length,
+      userId: user?.id
+    });
+
+    localStorage.setItem('lastSession', JSON.stringify({
+      scenario: customPrompt,
+      transcript: mappedTranscript,
+      duration: Date.now(),
+    }));
+
+    // Save to Supabase if logged in
+    if (user?.id) {
+      console.log('[TalkingPhotoSession] Saving to Supabase...');
+      try {
+        const { sessionId: dbId, error } = await saveSession(user.id, {
+          scenario: customPrompt,
+          durationSeconds,
+          transcript: mappedTranscript.map((t: any) => ({ speaker: t.speaker, text: t.text })),
+        });
+        if (error) {
+          console.error('[TalkingPhotoSession] Database save error:', error);
+        } else if (dbId) {
+          console.log('[TalkingPhotoSession] Successfully saved session to DB:', dbId);
+          // Update localStorage with the DB session ID for feedback page to use
+          localStorage.setItem('lastSession', JSON.stringify({
+            scenario: customPrompt,
+            dbSessionId: dbId, // <--- Add this
+            transcript: mappedTranscript,
+            duration: Date.now(),
+          }));
+        }
+      } catch (err) {
+        console.error('[TalkingPhotoSession] Unexpected error saving to DB:', err);
+      }
+    } else {
+      console.warn('[TalkingPhotoSession] User not logged in, skipping database save.');
+    }
+
+    reset();
+    router.push('/feedback');
+  };
   const isGenerating = phase === 'generating' || phase === 'polling' || isThinking;
 
   return (
@@ -463,8 +553,8 @@ function SessionContent() {
   const apiParam = searchParams.get("api");
   const [sessionMode, setSessionMode] = useState<SessionMode>(
     apiParam === 'heygen' ? 'heygen-streaming'
-    : apiParam === 'talking-photo' ? 'talking-photo'
-    : 'live-avatar'
+      : apiParam === 'talking-photo' ? 'talking-photo'
+        : 'live-avatar'
   );
 
   const commonProps = {

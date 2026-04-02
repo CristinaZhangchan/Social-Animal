@@ -5,7 +5,7 @@ import { useState } from "react";
 import { buildTransitionHref, pushWithTransition } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, TrendingUp } from "lucide-react";
 
 function ArrowIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
@@ -135,6 +135,14 @@ export default function HomePage() {
                       {user.email}
                     </p>
                   </div>
+                  {/* Track Progress */}
+                  <button
+                    onClick={() => pushWithTransition(router, "/track")}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-sm text-[#28020d] hover:bg-[#28020d]/5 transition-colors border-b border-[#28020d]/10"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    Track Progress
+                  </button>
                   {/* Logout */}
                   <button
                     onClick={handleSignOut}

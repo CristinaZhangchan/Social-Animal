@@ -19,9 +19,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     {children}
                 </div>
             </main>
-
-            {/* Mobile: Bottom Tab Bar */}
-            <BottomTabBar />
         </div>
     );
 }

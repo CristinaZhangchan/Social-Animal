@@ -7,6 +7,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 export function Header() {
     const router = useRouter();
     const { user, signOut } = useAuth();
@@ -14,6 +16,11 @@ export function Header() {
     const handleSignOut = async () => {
         await signOut();
         pushWithTransition(router, "/");
+    };
+
+    const getUserInitials = () => {
+        if (!user?.email) return "U";
+        return user.email.substring(0, 2).toUpperCase();
     };
 
     return (
@@ -32,10 +39,25 @@ export function Header() {
                             >
                                 Pricing
                             </Button>
+
+                            {/* Simple Avatar */}
+                            <div
+                                className="relative h-10 w-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => pushWithTransition(router, "/track")}
+                                title="View Progress"
+                            >
+                                <Avatar className="h-10 w-10 ring-2 ring-sa-maroon/10">
+                                    <AvatarImage src={user.user_metadata?.avatar_url} />
+                                    <AvatarFallback className="bg-sa-maroon text-sa-cream font-bold">
+                                        {getUserInitials()}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+
                             <Button
                                 variant="ghost"
                                 onClick={handleSignOut}
-                                className="text-muted-foreground hover:text-foreground font-medium"
+                                className="text-muted-foreground hover:text-foreground font-medium hidden xs:inline-flex"
                             >
                                 Log out
                             </Button>

@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import AppSidebar from "./AppSidebar";
 import BottomTabBar from "./BottomTabBar";
+import { Header } from "./Header";
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 className={`min-h-screen transition-all duration-300 ${isMobile ? "pb-20" : collapsed ? "ml-16" : "ml-64"
                     }`}
             >
+                <Header />
                 <div className={isMobile ? "p-4" : "p-8"}>
                     {children}
                 </div>

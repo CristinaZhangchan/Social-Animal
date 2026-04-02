@@ -92,36 +92,6 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
                     );
                 })}
             </nav>
-
-            {/* Upgrade & Sign out */}
-            <div className="p-2 border-t border-border/30 space-y-1">
-                <button
-                    onClick={() => pushWithTransition(router, "/pricing")}
-                    className={cn(
-                        "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
-                        collapsed ? "justify-center" : "justify-start",
-                        pathname === "/pricing"
-                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/25"
-                            : "bg-gradient-to-r from-amber-500/90 to-orange-500/90 text-white hover:from-amber-500 hover:to-orange-500 shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/30"
-                    )}
-                    title={collapsed ? "Upgrade" : undefined}
-                >
-                    <Crown className="h-5 w-5 group-hover:animate-bounce flex-shrink-0" />
-                    {!collapsed && <span className="font-semibold">Upgrade</span>}
-                </button>
-
-                <button
-                    onClick={handleSignOut}
-                    className={cn(
-                        "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200",
-                        collapsed ? "justify-center" : "justify-start"
-                    )}
-                    title={collapsed ? "Sign Out" : undefined}
-                >
-                    <LogOut className="h-5 w-5 flex-shrink-0" />
-                    {!collapsed && <span className="font-medium">Sign Out</span>}
-                </button>
-            </div>
         </aside>
     );
 }

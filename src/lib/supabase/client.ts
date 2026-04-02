@@ -14,6 +14,7 @@ export const isSupabaseConfigured = () => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
+        flowType: 'pkce',
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         persistSession: true,
         autoRefreshToken: true,

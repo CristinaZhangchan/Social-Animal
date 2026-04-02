@@ -10,36 +10,18 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-    const [collapsed, setCollapsed] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 768);
-        check();
-        window.addEventListener("resize", check);
-        return () => window.removeEventListener("resize", check);
-    }, []);
-
     return (
-        <div className="min-h-screen bg-background">
-            {/* Desktop: Sidebar */}
-            {!isMobile && (
-                <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-            )}
-
+        <div className="min-h-screen bg-background flex flex-col">
             {/* Main content area */}
-            <main
-                className={`min-h-screen transition-all duration-300 ${isMobile ? "pb-20" : collapsed ? "ml-16" : "ml-64"
-                    }`}
-            >
+            <main className="flex-1 flex flex-col min-h-screen">
                 <Header />
-                <div className={isMobile ? "p-4" : "p-8"}>
+                <div className="flex-1 p-4 lg:p-8">
                     {children}
                 </div>
             </main>
 
             {/* Mobile: Bottom Tab Bar */}
-            {isMobile && <BottomTabBar />}
+            <BottomTabBar />
         </div>
     );
 }

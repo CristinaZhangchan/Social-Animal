@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { pushWithTransition } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Home,
     TrendingUp,
@@ -23,11 +24,24 @@ interface AppSidebarProps {
 export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const { signOut } = useAuth();
+    const { user, signOut } = useAuth();
 
     const handleSignOut = async () => {
         await signOut();
         pushWithTransition(router, "/");
+    };
+
+    const getUserInitials = () => {
+        if (user?.user_metadata?.full_name) {
+            return user.user_metadata.full_name
+                .split(" ")
+                .map((n: string) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2);
+        }
+        if (user?.email) return user.email.substring(0, 2).toUpperCase();
+        return "U";
     };
 
     const navItems = [
@@ -109,6 +123,32 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
                     <Crown className="h-5 w-5 group-hover:animate-bounce flex-shrink-0" />
                     {!collapsed && <span className="font-semibold">Upgrade</span>}
                 </button>
+
+                {/* User Profile */}
+                {user && (
+                    <div className={cn(
+                        "flex items-center gap-3 px-3 py-3 border-t border-border/10 mt-2",
+                        collapsed ? "justify-center" : "justify-start"
+                    )}>
+                        <Avatar className="h-8 w-8 ring-1 ring-border/20">
+                            <AvatarImage src={user.user_metadata?.avatar_url} />
+                            <AvatarFallback className="bg-sa-maroon text-sa-cream text-[10px] font-bold">
+                                {getUserInitials()}
+                            </AvatarFallback>
+                        </Avatar>
+                        {!collapsed && (
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-semibold text-sa-maroon truncate">
+                                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                                </span>
+                                <span className="text-[10px] text-sa-gold-muted truncate">
+                                    {user.email}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <button
                     onClick={handleSignOut}
                     className={cn(

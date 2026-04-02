@@ -13,48 +13,69 @@ function AuthCallbackContent() {
   useEffect(() => {
     let cancelled = false;
 
-    const finishSignIn = async () => {
-      const code = searchParams.get("code");
-      const error = searchParams.get("error");
-      const errorDescription = searchParams.get("error_description");
+    // Check for explicit error in query params
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
 
-      if (error) {
-        if (!cancelled) {
-          const params = new URLSearchParams({
-            error: errorDescription || error,
-          });
-          router.replace(`/auth?${params.toString()}`);
+    if (error) {
+      const params = new URLSearchParams({
+        error: errorDescription || error,
+      });
+      router.replace(`/auth?${params.toString()}`);
+      return;
+    }
+
+    // For PKCE flow: try exchanging the code if present
+    const code = searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
+        if (cancelled) return;
+        if (exchangeError) {
+          // If code exchange fails, fall through to session check below
+          console.warn("Code exchange failed:", exchangeError.message);
         }
-        return;
-      }
+      });
+    }
 
-      if (!code) {
-        router.replace("/auth");
-        return;
-      }
-
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (exchangeError) {
-        if (!cancelled) {
-          const params = new URLSearchParams({
-            error: exchangeError.message,
-          });
-          router.replace(`/auth?${params.toString()}`);
+    // For implicit flow: detectSessionInUrl handles hash tokens automatically.
+    // Listen for auth state changes - works for both flows.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (cancelled) return;
+        if (event === "SIGNED_IN" && session) {
+          setMessage("Sign in successful. Redirecting...");
+          router.replace("/home");
         }
-        return;
       }
+    );
 
-      if (!cancelled) {
+    // Fallback: check if session is already established
+    // (e.g., detectSessionInUrl already processed the hash before this effect ran)
+    const checkExistingSession = async () => {
+      // Small delay to let detectSessionInUrl process the hash fragment
+      await new Promise((r) => setTimeout(r, 500));
+      if (cancelled) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && !cancelled) {
         setMessage("Sign in successful. Redirecting...");
         router.replace("/home");
       }
     };
 
-    void finishSignIn();
+    checkExistingSession();
+
+    // Timeout: if nothing happens after 8 seconds, redirect back to auth
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        router.replace("/auth?error=Sign+in+timed+out.+Please+try+again.");
+      }
+    }, 8000);
 
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, [router, searchParams]);
 

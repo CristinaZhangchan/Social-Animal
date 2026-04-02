@@ -321,8 +321,8 @@ export function useLiveAvatar() {
           const errData = await tokenRes.json().catch(() => ({}));
           throw new Error(
             errData?.details?.message ||
-              errData?.error ||
-              "Failed to create session token"
+            errData?.error ||
+            "Failed to create session token"
           );
         }
 
@@ -342,14 +342,15 @@ export function useLiveAvatar() {
 
         if (!startRes.ok) {
           const errData = await startRes.json().catch(() => ({}));
-          throw new Error(
-            errData?.details?.message ||
-              errData?.error ||
-              "Failed to start session"
-          );
+          let msg = errData?.details?.message || errData?.error || "Failed to start session";
+          if (msg.toLowerCase().includes("concurrency limit") || msg.toLowerCase().includes("limit reached")) {
+            msg = "Session limit reached. Please wait a moment or close other browser tabs and try again.";
+          }
+          throw new Error(msg);
         }
 
         const startData = await startRes.json();
+        console.log("[LiveAvatar] Session started successfully:", startData);
         const { livekit_url, livekit_client_token } = startData.data;
 
         if (!livekit_url || !livekit_client_token) {
@@ -485,10 +486,18 @@ export function useLiveAvatar() {
 
   useEffect(() => {
     return () => {
+      const sid = sessionIdRef.current;
       cleanup();
+      if (sid) {
+        fetch("/api/liveavatar/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sid }),
+        }).catch(() => { });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cleanup]);
 
   // ── Return ──────────────────────────────────────────────────────────────
 

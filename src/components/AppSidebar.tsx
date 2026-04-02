@@ -13,6 +13,7 @@ import {
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
+import Logo from "./Logo";
 
 interface AppSidebarProps {
     collapsed: boolean;
@@ -50,9 +51,7 @@ export default function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps)
                 )}
             >
                 {!collapsed && (
-                    <span className="text-2xl font-bold text-primary tracking-tight">
-                        Social Animal
-                    </span>
+                    <Logo size="md" href="/home" hideIcon={true} />
                 )}
                 <button
                     onClick={() => setCollapsed(!collapsed)}

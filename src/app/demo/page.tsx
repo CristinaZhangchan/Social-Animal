@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type {
   LiveAvatarCatalogResponse,
 } from "@/lib/liveavatar/catalog";
+import Logo from "@/components/Logo";
 import {
   ArrowLeft,
   ArrowRight,
@@ -101,7 +102,7 @@ function buildPreviewModeKey(searchParams: ReturnType<typeof useSearchParams>) {
   const duration = searchParams.get("duration");
   const avatarId = searchParams.get("avatarId");
 
-  if (source !== "home-card" || preview !== "1") {
+  if (preview !== "1" || (source !== "home-card" && source !== "home-custom")) {
     return "";
   }
 
@@ -129,6 +130,7 @@ function DemoPageContent() {
   const [isArrowEntryAnimating, setIsArrowEntryAnimating] = useState(
     entryTransition === "home-arrow" && initialStage === "scenario"
   );
+  const [isArrowExitAnimating, setIsArrowExitAnimating] = useState(false);
   const [previewBackTarget, setPreviewBackTarget] =
     useState<PreviewBackTarget>("scenario");
   const [returnToPreview, setReturnToPreview] = useState(
@@ -217,6 +219,8 @@ function DemoPageContent() {
 
   useEffect(() => {
     if (!customModeKey) return;
+    // If preview mode is active (home-custom with preview=1), skip — handled by previewModeKey effect
+    if (previewModeKey) return;
 
     const nextTitle = searchParams.get("title")?.trim() ?? "";
     const nextDescription = searchParams.get("description")?.trim() ?? "";
@@ -227,7 +231,7 @@ function DemoPageContent() {
     setPreviewBackTarget("details");
     setReturnToPreview(false);
     setStage("details");
-  }, [customModeKey, searchParams]);
+  }, [customModeKey, previewModeKey, searchParams]);
 
   useEffect(() => {
     if (!previewModeKey) return;
@@ -301,7 +305,26 @@ function DemoPageContent() {
     [applyAvatar, resetConversationPartner]
   );
 
-  const handleStartSession = () => {
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleStartSession = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+
+    // Try to get mic + camera permissions (user gesture context)
+    // If denied, proceed anyway — session still works (user just can't speak)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      stream.getTracks().forEach(t => t.stop());
+    } catch {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioStream.getTracks().forEach(t => t.stop());
+      } catch {
+        // Permissions denied — proceed anyway, avatar will still work
+      }
+    }
+
     const params = new URLSearchParams();
     params.append("scenario", "custom");
     params.append("lang", "en");
@@ -324,7 +347,8 @@ function DemoPageContent() {
       }
     }
 
-    router.push(buildTransitionHref(`/demo/session?${params.toString()}`));
+    // Navigate directly — no transition page (permissions already granted)
+    router.push(`/demo/session?${params.toString()}`);
   };
 
   const handleBack = () => {
@@ -350,7 +374,7 @@ function DemoPageContent() {
     }
 
     if (stage === "preview") {
-      if (launchSource === "home-card") {
+      if (launchSource === "home-card" || launchSource === "home-custom") {
         pushWithTransition(router, "/home");
         return;
       }
@@ -388,14 +412,66 @@ function DemoPageContent() {
 
   if (stage === "scenario") {
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#f5ebe2] sa-noise-overlay">
+      <main className="relative min-h-screen overflow-hidden bg-[#f5ebe2]">
+        {/* Home page mirror — visible behind cards during exit slide */}
+        <div className="absolute inset-0 z-0 rounded-[30px]">
+          <div
+            className="absolute inset-0 pointer-events-none rounded-[30px]"
+            style={{
+              background:
+                "linear-gradient(-57deg, rgba(245,235,226,0.5) 1%, rgba(248,223,201,0.5) 99%)",
+            }}
+          />
+          <div className="relative z-10 flex min-h-screen flex-col items-center px-6 pb-20 pt-16 lg:px-10 lg:pt-20">
+            <div className="mb-24 lg:mb-28">
+              <Logo collapsed size="lg" href={undefined} />
+            </div>
+            <div className="flex w-full flex-1 flex-col items-center justify-center">
+              <h1
+                className="max-w-[982px] text-center text-[#28020d]"
+                style={{
+                  fontFamily: "'FONTSPRING DEMO - Fedro SemBd', 'Libre Baskerville', Georgia, serif",
+                  fontSize: "clamp(42px, 4.2vw, 60px)",
+                  lineHeight: "60px",
+                  letterSpacing: "-2.4px",
+                }}
+              >
+                What kind of conversation would you like to practice?
+              </h1>
+              <div className="mt-14 w-full max-w-[898px]">
+                <div className="relative">
+                  <div className="sa-glass-input-hero w-full pr-[190px] flex items-center text-[#c8ad93] pl-10">
+                    Describe your scenario...
+                  </div>
+                  <div className="absolute right-[17px] top-1/2 z-[1] flex h-[70px] w-[140px] -translate-y-1/2 items-center justify-center rounded-[35px] bg-[#28020d] text-[#f5ebe2] opacity-40">
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-16 flex flex-col items-center gap-5 text-[#28020d]">
+              <span className="font-sans text-[28px] capitalize underline underline-offset-4 tracking-[-0.84px]">
+                Or Try One Of These
+              </span>
+              <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#28020d] text-[#f5ebe2]">
+                <svg className="h-[30px] w-[30px]" viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Scenario cards layer — slides up on entry, slides down on exit */}
         <div
-          className="absolute inset-0 transition-transform duration-700 will-change-transform"
+          className="absolute inset-0 z-10 bg-[#f5ebe2] transition-transform duration-700 will-change-transform"
           style={{
             transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
             transform: isArrowEntryAnimating
               ? "translate3d(0, 100%, 0)"
-              : "translate3d(0, 0, 0)",
+              : isArrowExitAnimating
+                ? "translate3d(0, 100%, 0)"
+                : "translate3d(0, 0, 0)",
             backfaceVisibility: "hidden",
           }}
         >
@@ -411,7 +487,10 @@ function DemoPageContent() {
             <div className="flex justify-center pb-8 lg:pb-10">
               <button
                 type="button"
-                onClick={() => pushWithTransition(router, "/home")}
+                onClick={() => {
+                  setIsArrowExitAnimating(true);
+                  setTimeout(() => router.push("/home"), 700);
+                }}
                 className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#28020d] text-[#f5ebe2] shadow-[0_10px_25px_rgba(40,2,13,0.14)]"
                 aria-label="Back to home"
               >
@@ -819,10 +898,11 @@ function DemoPageContent() {
             disabled={!selectedAvatar}
             className="absolute bottom-[60px] right-[48px] h-[85px] rounded-[43.75px] bg-[#28020d] px-10 text-[30px] text-[#f5ebe2] transition-transform hover:-translate-y-1 disabled:opacity-40"
           >
-            Start Conversation
+            {isStarting ? "Connecting..." : "Start Conversation"}
           </button>
         </div>
       </div>
+
     </main>
   );
 }

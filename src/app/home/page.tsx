@@ -59,7 +59,7 @@ export default function HomePage() {
 
     const params = new URLSearchParams();
     params.set("source", "home-custom");
-    params.set("stage", "details");
+    params.set("preview", "1");
     params.set("title", nextScenario);
     params.set("description", nextScenario);
 
@@ -86,9 +86,9 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f5ebe2]">
+    <main className="relative min-h-screen overflow-hidden rounded-[30px] bg-[#f5ebe2]">
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none rounded-[30px]"
         style={{
           background:
             "linear-gradient(-57deg, rgba(245,235,226,0.5) 1%, rgba(248,223,201,0.5) 99%)",
@@ -162,7 +162,7 @@ export default function HomePage() {
               fontFamily:
                 "'FONTSPRING DEMO - Fedro SemBd', 'Libre Baskerville', Georgia, serif",
               fontSize: "clamp(42px, 4.2vw, 60px)",
-              lineHeight: "0.94",
+              lineHeight: "60px",
               letterSpacing: "-2.4px",
             }}
           >
@@ -173,19 +173,18 @@ export default function HomePage() {
             onSubmit={handleCustomSubmit}
             className="mt-14 w-full max-w-[898px]"
           >
-            <div className="relative">
+            <div className="relative ">
               <input
                 type="text"
                 value={customScenario}
                 onChange={(event) => setCustomScenario(event.target.value)}
                 placeholder="Describe your scenario..."
                 className="sa-glass-input-hero w-full pr-[190px]"
-                style={{ mixBlendMode: "multiply" }}
               />
               <button
                 type="submit"
                 disabled={!customScenario.trim()}
-                className="absolute right-[17px] top-1/2 flex h-[70px] w-[140px] -translate-y-1/2 items-center justify-center rounded-[35px] bg-[#28020d] text-[#f5ebe2] transition-all hover:translate-y-[calc(-50%-2px)] hover:shadow-lg disabled:opacity-40"
+                className="absolute right-[17px] top-1/2 z-[1] flex h-[70px] w-[140px] -translate-y-1/2 items-center justify-center rounded-[35px] bg-[#28020d] text-[#f5ebe2] transition-all hover:translate-y-[calc(-50%-2px)] hover:shadow-lg disabled:opacity-40"
                 aria-label="Continue to scenario details"
               >
                 <ArrowIcon />
@@ -199,7 +198,7 @@ export default function HomePage() {
           onClick={() => router.push("/demo?entry=home-arrow")}
           className="mt-16 flex flex-col items-center gap-5 text-[#28020d] transition-opacity hover:opacity-80"
         >
-          <span className="font-sans text-[24px] underline underline-offset-4 lg:text-[28px]">
+          <span className="font-sans text-[28px] capitalize underline underline-offset-4 tracking-[-0.84px]">
             Or Try One Of These
           </span>
           <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#28020d] text-[#f5ebe2]">

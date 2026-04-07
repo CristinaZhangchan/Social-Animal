@@ -32,6 +32,7 @@ interface FeedbackData {
   emotionalIntelligence: number;
   clarity: number;
   pace: number;
+  encouragement?: string;
   insights: Array<{
     icon: string;
     title: string;
@@ -163,6 +164,15 @@ export default function FeedbackPage() {
       return prev ? parseInt(prev) : null;
     }
     return null;
+  });
+  const [sessionCount] = useState(() => {
+    if (typeof window !== "undefined") {
+      const count = parseInt(localStorage.getItem("sessionCount") || "0", 10);
+      const newCount = count + 1;
+      localStorage.setItem("sessionCount", newCount.toString());
+      return newCount;
+    }
+    return 1;
   });
 
   const fetchTranscriptFromAPI = async (sessionId: string) => {
@@ -297,10 +307,22 @@ export default function FeedbackPage() {
     );
   }
 
-  const feedbackSummary =
-    feedback && feedback.insights && feedback.insights.length > 0
-      ? `${feedback.insights.map((i) => i.description).join(" ")} Consistency builds lasting confidence.`
-      : "Great start, taking initiative matters. Social skills grow with practice; keep going, stay patient, and celebrate every bit of progress. Consistency builds lasting confidence.";
+  const feedbackSummary = (() => {
+    // Use AI-generated personalized encouragement if available
+    if (feedback?.encouragement) {
+      return feedback.encouragement;
+    }
+    // Fallback: generate encouragement based on session count and score
+    if (sessionCount <= 1) {
+      return overallPercent >= 60
+        ? "Great first session! You're already showing natural charisma. Keep practicing and you'll see even more improvement."
+        : "Congrats! You've started your journey to improved social skills. This will help you in all areas of life!";
+    }
+    if (previousScore && overallPercent > previousScore) {
+      return "Nice improvement! Keep practicing and you'll master this! Your consistency is paying off.";
+    }
+    return "Great start, taking initiative matters. Social skills grow with practice; keep going, stay patient, and celebrate every bit of progress. Consistency builds lasting confidence.";
+  })();
 
   const feedbackSummaryPreview = (() => {
     const normalized = feedbackSummary.replace(/\s+/g, " ").trim();

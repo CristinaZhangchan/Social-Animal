@@ -231,7 +231,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: inherit;
+    border-radius: 30px;
     mix-blend-mode: soft-light;
     opacity: 0.5;
     background-image: url('/noise-texture.png');
@@ -345,27 +345,27 @@
   }
 
   .sa-glass-input-hero {
-    border: 2px solid rgba(255, 254, 254, 0.5);
+    border: 1.5px solid #fffefe;
     border-radius: 100px;
     height: 95px;
-    background: linear-gradient(162deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 119.12%);
+    background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
     padding: 0 44px;
     font-family: 'Figtree', sans-serif;
     font-size: 28px;
+    letter-spacing: -0.84px;
     color: var(--sa-maroon);
     outline: none;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .sa-glass-input-hero::placeholder {
-    color: var(--sa-gold);
+    color: #c8ad93;
   }
 
   .sa-glass-input-hero:focus {
-    border-color: rgba(255, 254, 254, 0.82);
-    box-shadow: 0 0 0 1px rgba(255, 254, 254, 0.35);
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 20px rgba(200, 173, 147, 0.2);
   }
 
   .sa-feedback-number {
@@ -434,7 +434,7 @@
   }
 
   .sa-animate-spin-slow {
-    animation: sa-spin-slow 8s linear infinite;
+    animation: sa-spin-slow 14s linear infinite;
   }
 
   .sa-loader-layer {

@@ -173,6 +173,7 @@ function LiveAvatarSession({
   const [hasStarted, setHasStarted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const autoStarted = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -193,6 +194,7 @@ function LiveAvatarSession({
     setHasStarted(true);
     try {
       let finalPrompt = customPrompt;
+      let openingLine = "";
       try {
         const polishRes = await fetch("/api/prompt-polish", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -201,12 +203,17 @@ function LiveAvatarSession({
         if (polishRes.ok) {
           const polishData = await polishRes.json();
           finalPrompt = polishData.combinedPrompt || customPrompt;
+          openingLine = polishData.openingLine || "";
         }
       } catch (e) { console.warn("Prompt polish error", e); }
 
       const ctxRes = await fetch("/api/liveavatar/context", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `custom-${Date.now()}`, prompt: finalPrompt }),
+        body: JSON.stringify({
+          name: `custom-${Date.now()}`,
+          prompt: finalPrompt,
+          opening_text: openingLine,
+        }),
       });
       let createdContextId;
       if (ctxRes.ok) {
@@ -224,14 +231,25 @@ function LiveAvatarSession({
     } catch (err) { console.error("Failed to start", err); }
   }, [customPrompt, selectedLanguage, startSession, avatarIdParam, voiceIdParam, onBack]);
 
+  // Auto-start session on mount (permissions already granted on preview page)
+  useEffect(() => {
+    if (autoStarted.current) return;
+    autoStarted.current = true;
+    handleStart();
+  }, [handleStart]);
+
+  const [isEnding, setIsEnding] = useState(false);
+
   const handleEndSession = useCallback(async () => {
+    setIsEnding(true);
     localStorage.setItem("lastSession", JSON.stringify({
       scenario: customPrompt, sessionId,
       transcript: transcript.map(t => ({ speaker: t.speaker === "user" ? "You" : "AI", text: t.text })),
       speakEvents, duration: Date.now()
     }));
     await stopSession();
-    router.push("/feedback");
+    // Short delay for the transition overlay to render, then navigate
+    setTimeout(() => router.push("/feedback"), 800);
   }, [stopSession, customPrompt, sessionId, transcript, speakEvents, router]);
 
   const isLoading = phase === "creating_token" || phase === "starting" || phase === "connecting";
@@ -243,32 +261,8 @@ function LiveAvatarSession({
       <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
       <div ref={audioContainerRef} style={{ display: "none" }} />
 
-      {/* Pre-start overlay */}
-      {!hasStarted && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 bg-sa-cream">
-          <div className="text-center max-w-lg px-8 sa-animate-fade-in">
-            <div className="w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden bg-sa-surface">
-              {avatarPreviewUrlParam && <img src={avatarPreviewUrlParam} className="w-full h-full object-cover" alt={avatarNameParam || "Selected avatar"} />}
-            </div>
-            <h2 className="font-serif text-sa-maroon text-4xl mb-4">Ready to Begin</h2>
-            {(avatarNameParam || avatarRoleParam) && (
-              <p className="text-sa-maroon text-lg mb-3">
-                <span className="font-semibold">{avatarNameParam || "Your avatar"}</span>
-                {avatarRoleParam ? ` - ${avatarRoleParam}` : ""}
-              </p>
-            )}
-            <p className="text-sa-gold-muted text-lg mb-8">
-              {customPrompt.length > 100 ? customPrompt.substring(0, 100) + '...' : customPrompt}
-            </p>
-            <button onClick={handleStart} className="sa-btn-primary text-2xl px-12 py-5">
-              Start Conversation
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {hasStarted && isLoading && <LoadingOverlay />}
+      {/* Loading — hide as soon as avatar starts speaking */}
+      {isLoading && !isAvatarSpeaking && <LoadingOverlay />}
 
       {/* Timer */}
       {isConnected && <SessionTimer startTime={startTime} />}
@@ -277,7 +271,7 @@ function LiveAvatarSession({
       <TranscriptPanel transcript={transcript.map(t => ({ speaker: t.speaker, text: t.text }))} show={showTranscript} />
 
       {/* Controls */}
-      {isConnected && (
+      {isConnected && !isEnding && (
         <ControlBar
           isMicEnabled={isMicEnabled}
           onToggleMic={toggleMicrophone}
@@ -286,6 +280,9 @@ function LiveAvatarSession({
           showTranscript={showTranscript}
         />
       )}
+
+      {/* Ending transition — smooth fade to feedback */}
+      {isEnding && <LoadingOverlay />}
 
     </div>
   );
@@ -309,15 +306,27 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
     }
   }, [stream]);
 
-  const handleStart = () => {
+  const autoStartedHeygen = useRef(false);
+
+  const handleStart = useCallback(() => {
     setHasStarted(true);
     setStartTime(Date.now());
     startSession(avatarIdParam || "", avatarPreviewUrlParam || undefined);
-  };
+  }, [avatarIdParam, avatarPreviewUrlParam, startSession]);
+
+  // Auto-start session immediately
+  useEffect(() => {
+    if (autoStartedHeygen.current) return;
+    autoStartedHeygen.current = true;
+    handleStart();
+  }, [handleStart]);
+
+  const [isEnding, setIsEnding] = useState(false);
 
   const handleEndSession = async () => {
+    setIsEnding(true);
     await endSession();
-    router.push("/feedback");
+    setTimeout(() => router.push("/feedback"), 800);
   };
 
   const isQuotaError = error?.includes('quota') || error?.includes('10008');
@@ -328,19 +337,7 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
     <div className="relative w-full h-full">
       <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
 
-      {!hasStarted && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 bg-sa-cream">
-          <div className="text-center max-w-lg px-8 sa-animate-fade-in">
-            <div className="w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden bg-sa-surface">
-              {avatarPreviewUrlParam && <img src={avatarPreviewUrlParam} className="w-full h-full object-cover" alt="" />}
-            </div>
-            <h2 className="font-serif text-sa-maroon text-4xl mb-4">Ready to Chat</h2>
-            <button onClick={handleStart} className="sa-btn-primary text-2xl px-12 py-5">Start Session</button>
-          </div>
-        </div>
-      )}
-
-      {hasStarted && isLoading && <LoadingOverlay />}
+      {isLoading && <LoadingOverlay />}
 
       {phase === 'error' && (
         <div className="absolute inset-0 flex items-center justify-center z-20 bg-sa-maroon/90">
@@ -359,7 +356,7 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
       )}
 
       {isConnected && <SessionTimer startTime={startTime} />}
-      {isConnected && (
+      {isConnected && !isEnding && (
         <ControlBar
           isMicEnabled={true}
           onToggleMic={() => {}}
@@ -368,6 +365,7 @@ function HeyGenSession({ customPrompt, selectedLanguage, avatarIdParam, avatarPr
           showTranscript={showTranscript}
         />
       )}
+      {isEnding && <LoadingOverlay />}
     </div>
   );
 }

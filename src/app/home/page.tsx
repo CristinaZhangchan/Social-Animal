@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { buildTransitionHref, pushWithTransition } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, Loader2 } from "lucide-react";
 
 function ArrowIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
@@ -47,9 +47,16 @@ function ChevronDownIcon() {
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [customScenario, setCustomScenario] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Redirect unauthenticated users to auth page
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/auth');
+    }
+  }, [loading, user, router]);
 
   const handleCustomSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,6 +91,14 @@ export default function HomePage() {
     if (user?.email) return user.email.substring(0, 2).toUpperCase();
     return "U";
   };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#f5ebe2] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#28020d]" />
+      </div>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden rounded-[30px] bg-[#f5ebe2]">

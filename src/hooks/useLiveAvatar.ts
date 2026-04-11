@@ -280,7 +280,19 @@ export function useLiveAvatar() {
       try {
         await room.connect(livekitUrl, livekitToken);
         // Enable microphone so the avatar can hear the user
-        await room.localParticipant.setMicrophoneEnabled(true);
+        try {
+          await room.localParticipant.setMicrophoneEnabled(true);
+        } catch (micErr) {
+          // Mic denied — session continues but user can't speak
+          console.warn("Microphone permission denied:", micErr);
+        }
+        // Request camera access for body language / facial expression feedback
+        try {
+          await room.localParticipant.setCameraEnabled(true);
+        } catch (camErr) {
+          // Camera is optional — session continues without it
+          console.warn("Camera permission denied or unavailable:", camErr);
+        }
         setPhase("connected");
       } catch (err) {
         console.error("Failed to connect to LiveKit room:", err);

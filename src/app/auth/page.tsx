@@ -47,6 +47,19 @@ export default function AuthPage() {
 
             if (result.error) {
                 setError(result.error.message);
+            } else if (!isLogin) {
+                // signUp with an already-registered email returns no error but
+                // an empty identities array (Supabase security design).
+                if (result.data?.user?.identities?.length === 0) {
+                    setError('An account with this email already exists. Please log in instead.');
+                    return;
+                }
+                // Email confirmation is enabled — user must verify before signing in.
+                if (!result.data?.session) {
+                    setError('Please check your email to confirm your account before logging in.');
+                    return;
+                }
+                pushWithTransition(router, '/home');
             } else {
                 pushWithTransition(router, '/home');
             }

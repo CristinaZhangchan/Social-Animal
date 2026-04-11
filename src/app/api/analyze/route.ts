@@ -124,70 +124,63 @@ export async function POST(req: NextRequest) {
       .map((entry) => `${entry.speaker}: ${entry.text}`)
       .join("\n");
 
-    // Use AI to analyze the conversation
-    const analysisPrompt = `You are a communication coach analyzing a practice conversation. The scenario was: ${scenario}.
+    // Use AI to analyze the conversation based on the Cues framework (Vanessa Van Edwards)
+    const analysisPrompt = `You are an expert communication coach analyzing a practice conversation using the "Cues" framework by Vanessa Van Edwards. Charisma = Warmth + Competence. The scenario was: ${scenario}.
 
 Transcript:
 ${transcriptText}
 
-Provide a detailed analysis in JSON format with the following structure:
+Analyze the user's performance (NOT the AI avatar's) across three cue categories and provide a detailed analysis in JSON format:
+
 {
-  "overallScore": <number 0-10>,
-  "emotionalIntelligence": <number 0-10>,
-  "clarity": <number 0-10>,
-  "pace": <number 0-10>,
+  "overallScore": <number 0-10, based on overall charisma balance of warmth + competence>,
+  "visualCues": <number 0-10>,
+  "vocalCues": <number 0-10>,
+  "verbalCues": <number 0-10>,
+  "encouragement": "<1-2 sentence personalized encouragement based on their performance — be specific, warm, and motivating. Examples: 'Great first step! Starting these conversations is the hardest part, and you showed real courage.' or 'Nice improvement in your confidence! Your directness is becoming a real strength.'>",
   "insights": [
     {
       "icon": "<emoji>",
       "title": "<short title>",
-      "description": "<detailed description>",
-      "type": "positive" or "improvement"
+      "description": "<detailed description referencing specific moments from the conversation>",
+      "type": "positive" or "improvement",
+      "cueCategory": "visual" or "vocal" or "verbal"
     }
   ],
   "practiceExercises": [
     {
       "title": "<exercise title>",
       "description": "<detailed description referencing specific conversation moments>",
-      "duration": "<estimated time, e.g., '5 minutes'>",
+      "duration": "<estimated time>",
       "targetSkill": "<skill this exercise targets>",
       "steps": ["<step 1>", "<step 2>", "<step 3>"]
     }
   ]
 }
 
-IMPORTANT GUIDELINES:
+SCORING GUIDELINES (based on Cues framework):
 
-For insights:
-- Provide 3-5 actionable insights
-- Be specific and encouraging but honest
-- Reference specific quotes or moments from the conversation
+**Visual Cues** (score based on what can be inferred from the transcript about engagement):
+- Warmth signals: engagement level, supportive responses, emotional openness
+- Competence signals: confidence in assertions, decisive language vs. hedging
 
-For practiceExercises:
-1. Generate 2-3 SPECIFIC exercises based on the ACTUAL conversation content
-2. Each exercise should address a specific weakness or reinforce a strength shown in the transcript
-3. Reference specific moments from the conversation when explaining why this exercise is recommended
-4. Include concrete, actionable steps
-5. Do NOT give generic advice - make it specific to what the user said or how they responded
+**Vocal Cues** (infer from transcript patterns):
+- Warmth: emotional expression, use of interjections/affirmative sounds, mirroring
+- Competence: filler words (um, uh, like, so), question inflection on statements, hedging language
+- Pace: response length consistency, rushing vs. thoughtful responses
 
-Example of a GOOD exercise (specific to conversation):
-{
-  "title": "The Pause-and-Breathe Technique",
-  "description": "In your conversation, you rushed to answer when asked about your biggest weakness. Practice taking a 2-second pause before answering challenging questions.",
-  "duration": "10 minutes daily",
-  "targetSkill": "Response timing and composure",
-  "steps": [
-    "Record yourself answering 5 difficult interview questions",
-    "After each question, count to 2 silently before speaking",
-    "Review recordings - your pauses should feel natural, not awkward"
-  ]
-}
+**Verbal Cues** (directly observable in transcript):
+- Warmth: word choice warmth (encouraging, inclusive language), imitating partner's words, asking follow-up questions
+- Competence: clarity, specificity, confident language (avoid "I think maybe", "sort of"), use of concrete examples
+- Anti-charisma: pessimistic/uninteresting language, excessive self-deprecation, defensive language
 
-Example of a BAD exercise (too generic - avoid this):
-{
-  "title": "Practice speaking clearly",
-  "description": "Work on your clarity",
-  "steps": ["Speak more clearly"]
-}`;
+IMPORTANT:
+- Be HONEST with scores. If the user performed poorly, give a low score. Do NOT inflate scores.
+- A short or empty conversation should score LOW (2-4 range).
+- Reference SPECIFIC quotes from the transcript.
+- The encouragement should be genuine and tailored to what the user actually did well or attempted.
+- Provide 3-5 insights total, covering at least 2 of the 3 cue categories.
+- Generate 2-3 specific exercises based on actual conversation weaknesses.`;
 
     const { text } = await generateText({
       model: openai("gpt-4o"),
@@ -222,9 +215,14 @@ Example of a BAD exercise (too generic - avoid this):
       });
     }
 
-    // Include rhythm metrics in response
+    // Map new field names to what the frontend expects
     return NextResponse.json({
-      ...analysis,
+      overallScore: analysis.overallScore ?? 5,
+      emotionalIntelligence: analysis.visualCues ?? analysis.emotionalIntelligence ?? 5,
+      clarity: analysis.verbalCues ?? analysis.clarity ?? 5,
+      pace: analysis.vocalCues ?? analysis.pace ?? 5,
+      encouragement: analysis.encouragement || "",
+      insights: analysis.insights || [],
       rhythmMetrics: {
         interruptionCount: rhythmAnalysis.interruptionCount,
         avgResponseLatency: rhythmAnalysis.avgResponseLatency,
